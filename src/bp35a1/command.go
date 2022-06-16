@@ -37,5 +37,6 @@ func setBroutePassword(password string) error {
 }
 
 func activeScan() error {
-	SKSCAN 2 FFFFFFFF 6
+	err := sendCommand("SKSCAN 2 FFFFFFFF 6")
+	return err
 }

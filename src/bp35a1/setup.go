@@ -23,4 +23,5 @@ func InitializeBrouteConnection() error {
 		return err
 	}
 
+	return nil
 }

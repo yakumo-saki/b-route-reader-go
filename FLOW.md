@@ -39,20 +39,35 @@ OK 00が返ってきた場合はバイナリモード（初期値）なのでASC
 ## アクティブスキャン
 
 * -> SKSCAN 2 FFFFFFFF 6
+* <- OK
 
-## PAN ID からIPv6アドレスに変換
+その後、非同期で以下が飛んでくる。
 
-* -> SKLL64 <>
+```
+EVENT 20 FE80:0000:0000:0000:~~~~
+EPANDESC
+  Channel:3A           ※ 後で使用する
+  Channel Page:09         使わない
+  Pan ID:A123          ※ 後で使用する
+  Addr:00123456789ABCD ※ 後で使用する
+  LQI:F5                  使わない
+  PairID:01234567      ※ 後で使用する
+EVENT 22 FE80:0000:0000:0000:~~~~
+```
+
+## PAN Addr からIPv6アドレスに変換
+
+* -> SKLL64 00123456789ABCD
 * <- FE80:~~~
 
 ## PAN通信設定のセット
 
 S2は通信チャンネル（周波数） S3はPAN ID
 
-* -> SKSREG S2 nn
+* -> SKSREG S2 3A
 * <- OK
 
-* SKSREG S3 nnnn
+* SKSREG S3 A123
 * <- OK
 
 ## PAN認証
