@@ -37,6 +37,18 @@ func InitializeBrouteConnection() error {
 
 	log.Info().Msgf("Smartmeter address is %s", ipv6)
 
+	err = setBroutePanChannel(sm.Channel)
+	if err != nil {
+		return err
+	}
+
+	err = setBroutePanId(sm.PanId)
+	if err != nil {
+		return err
+	}
+
+	log.Info().Msgf("PAN info set done")
+
 	return nil
 }
 

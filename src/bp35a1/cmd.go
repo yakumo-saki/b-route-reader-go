@@ -14,13 +14,9 @@ func sendReset() error {
 		return err
 	}
 
-	ret, err := waitForResult()
+	err = waitForOKResult()
 	if err != nil {
 		return err
-	}
-
-	if !containsInResult(ret, RET_OK) {
-		return fmt.Errorf("response is not OK")
 	}
 
 	return nil
@@ -70,15 +66,7 @@ func setBrouteId(id string) error {
 		return err
 	}
 
-	ret, err := waitForResult()
-	if err != nil {
-		return err
-	}
-	if endWithResult(ret, RET_OK) {
-		return nil
-	}
-
-	return fmt.Errorf("response is not %s", RET_OK)
+	return waitForOKResult()
 }
 
 func setBroutePassword(password string) error {
@@ -87,15 +75,25 @@ func setBroutePassword(password string) error {
 		return err
 	}
 
-	ret, err := waitForResult()
+	return waitForOKResult()
+}
+
+func setBroutePanChannel(panChannel string) error {
+	err := sendCommand(fmt.Sprintf("SKSREG S2 %s", panChannel))
 	if err != nil {
 		return err
 	}
-	if endWithResult(ret, RET_OK) {
-		return nil
+
+	return waitForOKResult()
+}
+
+func setBroutePanId(panId string) error {
+	err := sendCommand(fmt.Sprintf("SKSREG S3 %s", panId))
+	if err != nil {
+		return err
 	}
 
-	return fmt.Errorf("response is not %s", RET_OK)
+	return waitForOKResult()
 }
 
 // PAN ADDR -> IPv6アドレス変換
