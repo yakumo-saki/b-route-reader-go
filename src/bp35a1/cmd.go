@@ -71,6 +71,9 @@ func setBrouteId(id string) error {
 	}
 
 	ret, err := waitForResult()
+	if err != nil {
+		return err
+	}
 	if endWithResult(ret, RET_OK) {
 		return nil
 	}
@@ -85,6 +88,9 @@ func setBroutePassword(password string) error {
 	}
 
 	ret, err := waitForResult()
+	if err != nil {
+		return err
+	}
 	if endWithResult(ret, RET_OK) {
 		return nil
 	}
@@ -92,65 +98,23 @@ func setBroutePassword(password string) error {
 	return fmt.Errorf("response is not %s", RET_OK)
 }
 
-func activeScan() (SmartMeter, error) {
-	meter := SmartMeter{}
-
-	for i := 0; i < 10; i++ {
-		err := sendCommand("SKSCAN 2 FFFFFFFF 6")
-		if err != nil {
-			return meter, err
-		}
-
-		log.Debug().Msgf("wait for result...")
-
-		ret, err := waitForResult()
-		if err != nil {
-			return meter, err
-		}
-
-		if containsInResult(ret, RET_SCAN_FOUND) {
-			meter := parseActiveScanResult(ret)
-			return meter, nil
-		}
-		if endWithResult(ret, RET_SCAN_COMPLETE) {
-			break
-		}
-
-		log.Debug().Msgf("SmartMeter not found. retry (%d/%d).", i, 10)
-
+// PAN ADDR -> IPv6アドレス変換
+func convertPanIdToIpv6(panAddr string) (string, error) {
+	err := sendCommand(fmt.Sprintf("SKLL64 %s", panAddr))
+	if err != nil {
+		return "", err
 	}
 
-	return meter, fmt.Errorf("no SmartMeter found")
-}
-
-func parseActiveScanResult(ret []string) SmartMeter {
-	sm := SmartMeter{}
+	ret, err := waitForResultSKLL64()
+	if err != nil {
+		return "", err
+	}
 
 	for _, v := range ret {
-		switch {
-		case strings.Contains(v, RET_PAN_CHANNEL):
-			sm.Channel = parseActiveScanResultOne(v)
-		case strings.Contains(v, RET_PAN_CHANNEL_PAGE):
-			sm.ChannelPage = parseActiveScanResultOne(v)
-		case strings.Contains(v, RET_PAN_ID):
-			sm.PanId = parseActiveScanResultOne(v)
-		case strings.Contains(v, RET_PAN_ADDR):
-			sm.Addr = parseActiveScanResultOne(v)
-		case strings.Contains(v, RET_PAN_LQI):
-			sm.LQI = parseActiveScanResultOne(v)
-		case strings.Contains(v, RET_PAN_PAIR_ID):
-			sm.PairId = parseActiveScanResultOne(v)
+		if strings.HasPrefix(v, "FE80") {
+			return v, nil
 		}
 	}
 
-	return sm
-}
-
-func parseActiveScanResultOne(colonSeparatedValue string) string {
-	splitted := strings.SplitN(colonSeparatedValue, ":", 2)
-	if len(splitted) != 2 {
-		log.Error().Msgf("Unexpected EPANDESC return: %s", colonSeparatedValue)
-	}
-
-	return splitted[1]
+	return "", fmt.Errorf("command response %s is not expected", strings.Join(ret, ":"))
 }

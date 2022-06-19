@@ -27,7 +27,22 @@ func sendCommand(cmd string) error {
 	return nil
 }
 
+// OK等を返すコマンドの応答を返す
 func waitForResult() ([]string, error) {
+	return waitForResultImpl(RET_STOP_WORDS)
+}
+
+// SKLL64の応答を返す
+// このコマンドはいきなりIPv6アドレスだけを返してくる
+func waitForResultSKLL64() ([]string, error) {
+	return waitForResultImpl([]string{})
+}
+
+func waitForResultSKSCAN() ([]string, error) {
+	return waitForResultImpl([]string{RET_SCAN_COMPLETE})
+}
+
+func waitForResultImpl(stopWords []string) ([]string, error) {
 
 	log.Debug().Msg("Response start")
 	BYTE_CR := []byte("\r")
@@ -44,6 +59,10 @@ func waitForResult() ([]string, error) {
 	readBuf := make([]byte, 100)
 
 	stopFlag := false
+	if len(stopWords) == 0 {
+		stopFlag = true
+	}
+
 	for {
 		// Reads up to 100 bytes
 		n, err := port.Read(readBuf)
@@ -80,7 +99,7 @@ func waitForResult() ([]string, error) {
 
 				// ストップワード（通常、コマンド応答の末尾に来るワード）を見つけたら終了フラグを立てる
 				// OK を返したあとにさらに応答を返すコマンドがあるため（しかし、そのコマンドは使わない）
-				for _, stopWord := range RET_STOP_WORDS {
+				for _, stopWord := range stopWords {
 					if strings.Contains(lineStr, stopWord) {
 						stopFlag = true
 						break

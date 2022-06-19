@@ -28,7 +28,14 @@ func InitializeBrouteConnection() error {
 		return err
 	}
 
-	log.Info().Msgf("%s", sm)
+	log.Info().Msgf("Found smartmeter %s", sm)
+
+	ipv6, err := convertPanIdToIpv6(sm.Addr)
+	if err != nil {
+		return err
+	}
+
+	log.Info().Msgf("Smartmeter address is %s", ipv6)
 
 	return nil
 }
