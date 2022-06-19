@@ -1,9 +1,6 @@
 package bp35a1
 
 import (
-	"bytes"
-	"time"
-
 	"github.com/rs/zerolog/log"
 	"github.com/yakumo-saki/b-route-reader-go/src/config"
 
@@ -48,66 +45,18 @@ func Close() error {
 	return err
 }
 
-func TestConnection() error {
-	sendCommand("SKVER")
-
-	waitForResult()
-
-	log.Debug().Msg("SKVER OK")
-
-	return nil
-}
-
-func waitForResult() ([]string, error) {
-
-	log.Debug().Msg("Response start")
-	BYTE_CR := []byte("\r")
-	BYTE_LF := []byte("\n")
-
-	port.SetReadTimeout(300 * time.Millisecond)
-
-	var result []string
-
-	// Read and print the response
-	var byteBuf []byte
-	readBuf := make([]byte, 100)
-	for {
-		// Reads up to 100 bytes
-		n, err := port.Read(readBuf)
-		if err != nil {
-			log.Err(err).Msg("Read error")
-			return nil, err
-		}
-		if n == 0 && len(byteBuf) == 0 {
-			if len(result) > 0 {
-				break
-			}
-		}
-
-		byteBuf = append(byteBuf, readBuf[:n]...)
-
-		if bytes.Contains(byteBuf, BYTE_CR) {
-			crPos := bytes.Index(byteBuf, BYTE_CR)
-			lineBuf := byteBuf[:crPos]
-
-			byteBuf = byteBuf[crPos+len(BYTE_CR):] // 改行コードは削除
-
-			// CRLFで区切られている場合、LFが残るので削除
-			if bytes.HasPrefix(byteBuf, BYTE_LF) {
-				byteBuf = byteBuf[1:]
-				log.Debug().Msgf("<-- %s<CRLF>", string(lineBuf))
-			} else {
-				log.Debug().Msgf("<-- %s<CR>", string(lineBuf))
-			}
-
-			result = append(result, string(lineBuf))
-
-			if crPos == 0 {
-				break
-			}
-		}
+func StartConnection() error {
+	err := sendReset()
+	if err != nil {
+		log.Err(err).Msg("Send reset command error")
+		return err
 	}
 
-	log.Debug().Msg("Response done")
-	return result, nil
+	err = connectionTest()
+	if err != nil {
+		log.Err(err).Msg("Connection test command error")
+		return err
+	}
+
+	return nil
 }

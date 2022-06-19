@@ -24,16 +24,16 @@ func main() {
 		goto EXIT
 	}
 
-	err = bp35a1.TestConnection()
+	err = bp35a1.StartConnection()
 	if err != nil {
-		log.Err(err).Msg("Serial port opened. Exiting.")
+		log.Err(err).Msg("Test connection failed. Exiting.")
 		exitcode = 1
 		goto EXIT
 	}
 
 	err = bp35a1.InitializeBrouteConnection()
 	if err != nil {
-		log.Err(err).Msg("Serial port opened. Exiting.")
+		log.Err(err).Msg("Cannot initialize B-route connection. Exiting.")
 		exitcode = 1
 		goto EXIT
 	}
