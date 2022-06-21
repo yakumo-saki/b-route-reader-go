@@ -24,12 +24,11 @@ running at your coding pc
 
 ### 蛇足
 
-* socatは一度実行されると終了してしまう（なにかおかしい気がする）ので while で無限ループさせる。
+* socatは一度実行されると終了してしまう（なにかおかしい気がする）ので while で無限ループさせる(bash)
 
 `while true; do <コマンド>; done`
 
+### 蛇足２
 
-### 蛇足
-
-`ser2net` の方が適切なようですが…
-
+* socatで転送する前に minicom でハングアップを行っておく必要があります。
+* minicom を起動して ctrl-a -> h で `hangup line?` -> `yes` した後、ctrl-a -> q で終了します。（ctrl-a -> x ではない）

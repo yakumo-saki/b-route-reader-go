@@ -7,6 +7,30 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
+// こちらから送信したコマンドをエコーしないようにする
+// このコマンド自体はエコーされてくる。次のコマンドから有効。
+func setLocalEcho(enableEcho bool) error {
+
+	SFE := "0"
+	if enableEcho {
+		SFE = "1"
+	}
+
+	err := sendCommand(fmt.Sprintf("SKSREG SFE %s", SFE))
+	if err != nil {
+		log.Error().Msg("Send SKSREG SFE command fail.")
+		return err
+	}
+
+	err = waitForOKResult()
+	if err != nil {
+		return err
+	}
+
+	return nil
+
+}
+
 func sendReset() error {
 	err := sendCommand("SKRESET")
 	if err != nil {
@@ -115,4 +139,20 @@ func convertPanIdToIpv6(panAddr string) (string, error) {
 	}
 
 	return "", fmt.Errorf("command response %s is not expected", strings.Join(ret, ":"))
+}
+
+// PANA接続を行う。 (SKJOIN)
+// PaC = PANA authentication Client
+func startPaCAuthentication(ipv6Address string) error {
+	err := sendCommand(fmt.Sprintf("SKJOIN %s", ipv6Address))
+	if err != nil {
+		return err
+	}
+
+	ret, err := waitForResultSKJOIN()
+	if err != nil {
+		return err
+	}
+	dumpResult(ret)
+	return nil
 }

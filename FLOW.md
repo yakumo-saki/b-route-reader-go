@@ -73,6 +73,7 @@ S2は通信チャンネル（周波数） S3はPAN ID
 ## PAN認証
 
 * -> SKJOIN FE80:~~~~
+* <- EVENT 21 , EVENT 02 , ERXUDP が複数発生するが無視してよい
 * <- wait EVENT 25
 
 ## Echonet通信
@@ -86,7 +87,7 @@ SKSENDTO <HANDLE> <IPADDR> <PORT> <SECURE> <DATALEN> <DATA>
 | IPADDR | SKLL64で求めたスマートメーターのIPアドレス |
 | PORT   |: 16進数で指定。Echonet liteは 3610 = 0E1A |
 | SECURE |  0（常に平文）| 
-| DATALEN |  送信するデータ長。この数だけDATAを必ず指定するようにと注意書きがある。 |
+| DATALEN |  送信するデータ長。この数だけDATAを必ず指定するようにと注意書きがある。 16進数なので注意 |
 | DATA   | 16進数のASCII表記 | 
 
 ## 切断

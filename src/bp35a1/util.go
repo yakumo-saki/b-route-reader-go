@@ -9,7 +9,7 @@ import (
 
 // BP35A1にコマンドを送信する。自動的に末尾に改行（CRLF）を追加して送信する。
 func sendCommand(cmd string) error {
-	log.Debug().Msgf("Sending %s", cmd)
+	log.Debug().Msgf("--> %s", cmd)
 
 	n, err := port.Write([]byte(fmt.Sprintf("%s\r\n", cmd)))
 	if err != nil {
@@ -53,4 +53,12 @@ func waitForOKResult() error {
 
 	return fmt.Errorf("response is not %s", RET_OK)
 
+}
+
+func dumpResult(result []string) {
+	log.Debug().Msgf("Dump Response ------------------")
+	for _, v := range result {
+		log.Debug().Msgf("%s", v)
+	}
+	log.Debug().Msgf("Dump Response END --------------")
 }

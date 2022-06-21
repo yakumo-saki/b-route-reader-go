@@ -2,6 +2,7 @@ package bp35a1
 
 import (
 	"bytes"
+	"fmt"
 	"strings"
 	"time"
 
@@ -23,21 +24,26 @@ func waitForResultSKSCAN() ([]string, error) {
 	return waitForResultImpl([]string{RET_SCAN_COMPLETE})
 }
 
+func waitForResultSKJOIN() ([]string, error) {
+	return waitForResultImpl([]string{RET_JOIN_COMPLETE})
+}
+
 func waitForResultImpl(stopWords []string) ([]string, error) {
 
-	log.Debug().Msg("Response start")
+	log.Debug().Msgf("Response start. stop words=[%s]", strings.Join(stopWords, "|"))
 	BYTE_CR := []byte("\r")
 	BYTE_LF := []byte("\n")
+	LF := byte(0xa)
 
 	port.SetReadTimeout(300 * time.Millisecond)
+	timeoutDuration := 15 * time.Second
+
+	timeoutTime := time.Now().Add(timeoutDuration)
 
 	var result []string
 
 	// 応答を全部溜め込むバッファ
 	var byteBuf []byte
-
-	// 一回のreadで読んだデータのバッファ
-	readBuf := make([]byte, 100)
 
 	stopFlag := false
 	if len(stopWords) == 0 {
@@ -45,7 +51,9 @@ func waitForResultImpl(stopWords []string) ([]string, error) {
 	}
 
 	for {
-		// Reads up to 100 bytes
+		// 一回のreadで読んだデータのバッファ
+		readBuf := make([]byte, 200)
+
 		n, err := port.Read(readBuf)
 		if err != nil {
 			log.Err(err).Msg("Read error")
@@ -86,11 +94,17 @@ func waitForResultImpl(stopWords []string) ([]string, error) {
 						break
 					}
 				}
+			} else if len(byteBuf) == 1 && byteBuf[0] == LF {
+				// SKLL64の時、LFだけがバッファに残ってしまい無限ループすることへの対策
+				byteBuf = byteBuf[1:]
 			} else {
 				// 改行コードが含まれない
 				// 行の途中でバッファがいっぱいになったか、応答の末尾まで読み切った
 				// どちらにしてももう一度readを呼ぶ
-				break
+			}
+
+			if time.Now().After(timeoutTime) {
+				return result, fmt.Errorf("waitForResult timeout reached")
 			}
 		}
 	}

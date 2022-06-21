@@ -46,9 +46,20 @@ func Close() error {
 }
 
 func StartConnection() error {
+
+	// すでに存在している応答があれば読み捨てる
+	port.ResetInputBuffer()
+	port.ResetOutputBuffer()
+
 	err := sendReset()
 	if err != nil {
 		log.Err(err).Msg("Send reset command error")
+		return err
+	}
+
+	err = setLocalEcho(false)
+	if err != nil {
+		log.Err(err).Msg("Stop echo command error")
 		return err
 	}
 
