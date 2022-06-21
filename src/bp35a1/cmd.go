@@ -149,10 +149,9 @@ func startPaCAuthentication(ipv6Address string) error {
 		return err
 	}
 
-	ret, err := waitForResultSKJOIN()
+	_, err = waitForResultSKJOIN()
 	if err != nil {
 		return err
 	}
-	dumpResult(ret)
 	return nil
 }

@@ -9,34 +9,41 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
+var STD_TIMEOUT_DURATION = 15 * time.Second
+var LONG_TIMEOUT_DURATION = 60 * time.Second
+
 // OK等を返すコマンドの応答を返す
 func waitForResult() ([]string, error) {
-	return waitForResultImpl(RET_STOP_WORDS)
+	return waitForResultImpl(RET_STOP_WORDS, STD_TIMEOUT_DURATION)
 }
 
 // SKLL64の応答を返す
 // このコマンドはいきなりIPv6アドレスだけを返してくる
 func waitForResultSKLL64() ([]string, error) {
-	return waitForResultImpl([]string{})
+	return waitForResultImpl([]string{}, STD_TIMEOUT_DURATION)
 }
 
 func waitForResultSKSCAN() ([]string, error) {
-	return waitForResultImpl([]string{RET_SCAN_COMPLETE})
+	return waitForResultImpl([]string{RET_SCAN_COMPLETE}, LONG_TIMEOUT_DURATION)
 }
 
 func waitForResultSKJOIN() ([]string, error) {
-	return waitForResultImpl([]string{RET_JOIN_COMPLETE})
+	return waitForResultImpl([]string{RET_JOIN_COMPLETE}, LONG_TIMEOUT_DURATION)
 }
 
-func waitForResultImpl(stopWords []string) ([]string, error) {
+func waitForResultERXUDP() ([]string, error) {
+	return waitForResultImpl([]string{RET_ERXUDP}, LONG_TIMEOUT_DURATION)
+}
 
-	log.Debug().Msgf("Response start. stop words=[%s]", strings.Join(stopWords, "|"))
+func waitForResultImpl(stopWords []string, timeoutDuration time.Duration) ([]string, error) {
+
+	log.Debug().Msgf("Response start. timeout=%s stop words=[%s]",
+		timeoutDuration, strings.Join(stopWords, "|"))
 	BYTE_CR := []byte("\r")
 	BYTE_LF := []byte("\n")
 	LF := byte(0xa)
 
 	port.SetReadTimeout(300 * time.Millisecond)
-	timeoutDuration := 15 * time.Second
 
 	timeoutTime := time.Now().Add(timeoutDuration)
 
@@ -65,6 +72,15 @@ func waitForResultImpl(stopWords []string) ([]string, error) {
 			}
 		}
 
+		// タイムアウトまわり
+		if n == 0 {
+			if time.Now().After(timeoutTime) {
+				return result, fmt.Errorf("waitForResult timeout reached")
+			}
+		} else {
+			timeoutTime = time.Now().Add(timeoutDuration) // タイムアウト延長
+		}
+
 		byteBuf = append(byteBuf, readBuf[:n]...)
 
 		// byteBufを改行で分割する
@@ -78,7 +94,7 @@ func waitForResultImpl(stopWords []string) ([]string, error) {
 
 				// CRLFで区切られている場合、LFが残るので削除
 				if bytes.HasPrefix(byteBuf, BYTE_LF) {
-					byteBuf = byteBuf[1:]
+					byteBuf = byteBuf[len(BYTE_LF):]
 					log.Debug().Msgf("<-- %s<CRLF>", lineStr)
 				} else {
 					log.Debug().Msgf("<-- %s<CR>", lineStr)
@@ -96,17 +112,17 @@ func waitForResultImpl(stopWords []string) ([]string, error) {
 				}
 			} else if len(byteBuf) == 1 && byteBuf[0] == LF {
 				// SKLL64の時、LFだけがバッファに残ってしまい無限ループすることへの対策
+				log.Warn().Msgf("executing start with LF workaround")
 				byteBuf = byteBuf[1:]
+				break
 			} else {
 				// 改行コードが含まれない
 				// 行の途中でバッファがいっぱいになったか、応答の末尾まで読み切った
 				// どちらにしてももう一度readを呼ぶ
+				break
 			}
 
-			if time.Now().After(timeoutTime) {
-				return result, fmt.Errorf("waitForResult timeout reached")
-			}
-		}
+		} // 無限ループ
 	}
 
 	log.Debug().Msg("Response done")

@@ -9,22 +9,25 @@ import (
 	"github.com/yakumo-saki/b-route-reader-go/src/echonet"
 )
 
+var UNIT byte
+var LAST_TID uint16 = 1000
+
 func InitEchonet(ipv6 string) error {
 	var err error
 
-	msg := echonet.CreateEchonetInfMessage(1234, []string{})
-	log.Debug().Msgf("Echonet msg created -> %s", hex.EncodeToString(msg))
+	msg := echonet.CreateEchonetGetMessage(9000, []byte{echonet.P_UNIT})
 
 	err = skSendTo(ipv6, msg)
 	if err != nil {
 		return err
 	}
 
-	ret, err := waitForResultImpl([]string{"ERXUDP"})
+	log.Debug().Msgf("Echonet GET message sent.")
+
+	_, err = waitForResultERXUDP()
 	if err != nil {
 		return err
 	}
-	dumpResult(ret)
 
 	return nil
 }
@@ -35,31 +38,34 @@ func GetBrouteData(ipv6 string) ([]string, error) {
 	var err error
 	result := []string{"ERR"}
 
-	msg := echonet.CreateEchonetGetMessage(1234, []string{})
-	log.Debug().Msgf("Echonet msg created -> %s", hex.EncodeToString(msg))
+	tid := LAST_TID + 1
+	if tid >= 9000 {
+		LAST_TID = 1000
+		tid = 1000
+		log.Info().Msg("TID reached 9000. set back to 1000.")
+	}
+
+	msg := echonet.CreateEchonetGetMessage(tid, []byte{echonet.P_NOW_DENRYOKU, echonet.P_NOW_DENRYUU})
 
 	err = skSendTo(ipv6, msg)
 	if err != nil {
 		return result, err
 	}
 
-	ret, err := waitForResultImpl([]string{"ERXUDP"})
-	if err != nil {
-		return result, err
-	}
-	dumpResult(ret)
+	log.Debug().Msgf("Echonet property GET message sent.")
 
-	// ダミーでSKVERを実行して正しくSKSENDTOがされているかチェック
-	// バグっていればSKVERというコマンドが欠けたりしてエラーになるはず
-	err = sendCommand("SKVER")
+	ret, err := waitForResultERXUDP()
 	if err != nil {
 		return result, err
 	}
 
-	_, err = waitForResultImpl([]string{})
-	if err != nil {
-		return result, err
-	}
+	LAST_TID = tid
+
+	// DEBUG: SKSENDTO のDATALENがバグっていればコマンドが欠けたりしてエラーになるはず
+	// err = connectionTest()
+	// if err != nil {
+	// 	return result, err
+	// }
 
 	return ret, nil
 }
@@ -68,11 +74,10 @@ func GetBrouteData(ipv6 string) ([]string, error) {
 // TEST
 func skSendTo(ipv6 string, data []byte) error {
 
-	secured := "0" // 1=YES 0=NO 受信したIPパケットを構成するMACフレームを暗号化するか（原文ママ）
+	secured := "1" // 1=YES 0=NO 受信したIPパケットを構成するMACフレームを暗号化するか（原文ママ）
 
 	cmd := fmt.Sprintf("SKSENDTO 1 %s 0E1A %s %04X", ipv6, secured, len(data)) // DATALENは16進数
 	cmd = cmd + " "                                                            // DATALENのあとにスペースを入れないとデータ入力待ちにならない
-	// log.Debug().Msgf("--> %s", cmd)
 	n, err := port.Write([]byte(cmd))
 	if err != nil {
 		log.Err(err).Msgf("skSendTo: command send error")
@@ -83,7 +88,7 @@ func skSendTo(ipv6 string, data []byte) error {
 	}
 
 	// データ入力待ちになるまでちょっと間隔を空ける
-	time.Sleep(100 * time.Millisecond)
+	time.Sleep(200 * time.Millisecond)
 
 	n, err = port.Write(data)
 	if err != nil {
@@ -94,7 +99,7 @@ func skSendTo(ipv6 string, data []byte) error {
 		return fmt.Errorf("skSendTo: unexpected data sent bytes. expected=%d actual=%d", len(data), n)
 	}
 
-	log.Debug().Msgf("--> %s%s", cmd, hex.EncodeToString(data))
+	log.Debug().Msgf("--> %sbinary<%s>", cmd, hex.EncodeToString(data))
 
 	return nil
 }
