@@ -94,3 +94,28 @@ SKSENDTO <HANDLE> <IPADDR> <PORT> <SECURE> <DATALEN> <DATA>
 
 * -> SKTERM
 * <- OK
+
+
+## 参考
+
+### BP35A1 コマンドリファレンス
+
+* 公式では見れないようだ。
+* "BP35A1 コマンドリファレンス" でWeb検索するとPDFが見つかる。
+
+### ECHONET Lite 電文
+
+第２部 ECHONET Lite 通信ミドルウェア仕様
+https://echonet.jp/wp/wp-content/uploads/pdf/General/Standard/ECHONET_lite_V1_13_jp/ECHONET-Lite_Ver.1.13_02.pdf
+第３章 電文構成（フレームフォーマット）
+
+### 通信の流れ
+
+低圧スマート電力量メータ・HEMS コントローラ間 アプリケーション通信インタフェース仕様書
+https://echonet.jp/wp/wp-content/uploads/pdf/General/Standard/AIF/lvsm/lvsm_aif_ver1.01.pdf
+
+### EPC(プロパティコード)の定義と値の意味
+
+ECHONET SPECIFICATION APPENDIX ECHONET 機器オブジェクト詳細規定
+３．３．２５ 低圧スマート電力量メータクラス規定
+https://echonet.jp/wp/wp-content/uploads/pdf/General/Standard/Release/Release_Q/Appendix_Release_Q.pdf

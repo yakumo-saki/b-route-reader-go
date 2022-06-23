@@ -14,6 +14,11 @@ import (
 var exitcode = 0
 
 func main() {
+	ret := run()
+	os.Exit(ret)
+}
+
+func run() int {
 	logger.Initiallize()
 	config.Initialize()
 
@@ -73,5 +78,9 @@ EXIT:
 		log.Err(err).Msg("Error occured in close connection. do nothing.")
 	}
 
-	os.Exit(exitcode)
+	if exitcode == 0 {
+		log.Info().Msg("Normal end.")
+	}
+
+	return exitcode
 }

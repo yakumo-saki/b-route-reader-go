@@ -41,6 +41,7 @@ func waitForResultImpl(stopWords []string, timeoutDuration time.Duration) ([]str
 		timeoutDuration, strings.Join(stopWords, "|"))
 	BYTE_CR := []byte("\r")
 	BYTE_LF := []byte("\n")
+	BYTE_CRLF := []byte("\r\n")
 	LF := byte(0xa)
 
 	port.SetReadTimeout(300 * time.Millisecond)
@@ -90,13 +91,18 @@ func waitForResultImpl(stopWords []string, timeoutDuration time.Duration) ([]str
 				lineBuf := byteBuf[:crPos]
 				lineStr := trimResponse(string(lineBuf))
 
-				byteBuf = byteBuf[crPos+len(BYTE_CR):] // 改行コードは削除
+				byteBuf = byteBuf[crPos:] // 改行コードは削除
 
 				// CRLFで区切られている場合、LFが残るので削除
-				if bytes.HasPrefix(byteBuf, BYTE_LF) {
-					byteBuf = byteBuf[len(BYTE_LF):]
+				switch {
+				case bytes.HasPrefix(byteBuf, BYTE_CRLF):
+					byteBuf = byteBuf[len(BYTE_CRLF):]
 					log.Debug().Msgf("<-- %s<CRLF>", lineStr)
-				} else {
+				case bytes.HasPrefix(byteBuf, BYTE_LF):
+					byteBuf = byteBuf[len(BYTE_LF):]
+					log.Debug().Msgf("<-- %s<LF>", lineStr)
+				case bytes.HasPrefix(byteBuf, BYTE_CR):
+					byteBuf = byteBuf[len(BYTE_CR):]
 					log.Debug().Msgf("<-- %s<CR>", lineStr)
 				}
 

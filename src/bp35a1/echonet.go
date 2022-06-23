@@ -3,19 +3,23 @@ package bp35a1
 import (
 	"encoding/hex"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/rs/zerolog/log"
 	"github.com/yakumo-saki/b-route-reader-go/src/echonet"
+	"github.com/yakumo-saki/b-route-reader-go/src/echonet/smartmeter"
 )
 
-var UNIT byte
 var LAST_TID uint16 = 1000
 
+var parser smartmeter.ELSmartMeterParser
+
+// 一度だけ取得すればあとは変わらないものを取得して、パーサーに渡す
 func InitEchonet(ipv6 string) error {
 	var err error
 
-	msg := echonet.CreateEchonetGetMessage(9000, []byte{echonet.P_UNIT})
+	msg := echonet.CreateEchonetGetMessage(9000, []byte{echonet.P_DELTA_UNIT, echonet.P_MULTIPLIER})
 
 	err = skSendTo(ipv6, msg)
 	if err != nil {
@@ -24,9 +28,27 @@ func InitEchonet(ipv6 string) error {
 
 	log.Debug().Msgf("Echonet GET message sent.")
 
-	_, err = waitForResultERXUDP()
+	ret, err := waitForResultERXUDP()
 	if err != nil {
 		return err
+	}
+
+	responses := findEchonetResponse(ret, "9000")
+	log.Info().Msg(responses[0])
+	el, err := echonet.Parse(responses[0])
+	if err != nil {
+		return fmt.Errorf("failed to parse response as echonet msg: %w", err)
+	}
+
+	parser = smartmeter.ELSmartMeterParser{}
+	_, err = parser.ParseAndStoreD0DeltaUnit(el.Properties[echonet.P_DELTA_UNIT])
+	if err != nil {
+		return fmt.Errorf("failed to parse P_DELTA_UNIT(D0): %w", err)
+	}
+
+	_, err = parser.ParseAndStoreD3Multiplier(el.Properties[echonet.P_MULTIPLIER])
+	if err != nil {
+		return fmt.Errorf("failed to parse P_MULTIPLIER(D3): %w", err)
 	}
 
 	return nil
@@ -45,6 +67,7 @@ func GetBrouteData(ipv6 string) ([]string, error) {
 		log.Info().Msg("TID reached 9000. set back to 1000.")
 	}
 
+	// TODO 積算追加
 	msg := echonet.CreateEchonetGetMessage(tid, []byte{echonet.P_NOW_DENRYOKU, echonet.P_NOW_DENRYUU})
 
 	err = skSendTo(ipv6, msg)
@@ -102,4 +125,15 @@ func skSendTo(ipv6 string, data []byte) error {
 	log.Debug().Msgf("--> %sbinary<%s>", cmd, hex.EncodeToString(data))
 
 	return nil
+}
+
+// Unicastで返ってくるEchonet Lite応答を抜き出して返す
+func findEchonetResponse(received []string, tid string) []string {
+	ret := make([]string, 0)
+	for _, v := range received {
+		if strings.Contains(v, tid) {
+			ret = append(ret, v)
+		}
+	}
+	return ret
 }

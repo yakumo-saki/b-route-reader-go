@@ -21,9 +21,12 @@ var P_GET_PROPERTY_MAP = byte(0x9F)
 var P_SERIAL_NO = byte(0x8D)
 
 var P_DELTA_DENRYOKU = byte(0xE0)
-var P_NOW_DENRYOKU = byte(0xE7)
-var P_NOW_DENRYUU = byte(0xE8)
+var P_NOW_DENRYOKU = byte(0xE7) // E7瞬時電力。 4byte HEX signed long
+var P_NOW_DENRYUU = byte(0xE8)  // E8瞬時電流。2byte HEX * 2(R相 T相) 0.1A単位。T相が0x7FFDの場合単相2線式
 var P_DELTA_HISTORY = byte(0xE2)
-var P_DELTA_UNIT = byte(0xE1)
 
-var P_UNIT = byte(0xD3)
+// 係数。D3 すべての値にこの値を乗算する必要がある。応答は10進数
+var P_MULTIPLIER = byte(0xD3)
+
+// 積算電力量単位。 E1 1byte hex. 00=1kWh 01=0.1kWh 04=0.0001kWh 0A=10kWh 0B=100kWh 0C=1000kWh 0D=10000kWh
+var P_DELTA_UNIT = byte(0xE1)

@@ -35,9 +35,9 @@ func CreateEchonetInfMessage(transactionId int, properties []string) []byte {
 // PDC         ... EDTデータ長。 GET時は 0  1byte
 // EDT         ... データ部
 func CreateEchonetGetMessage(transactionId uint16, properties []byte) []byte {
-	tid, err := hex.DecodeString(fmt.Sprintf("%04x", transactionId))
+	tid, err := hex.DecodeString(fmt.Sprintf("%04d", transactionId))
 	if err != nil {
-		tid = []byte{0x99, 0x99}
+		tid = []byte{0xEE, 0xEE}
 	}
 
 	opc, err := hex.DecodeString(fmt.Sprintf("%02x", len(properties)))
