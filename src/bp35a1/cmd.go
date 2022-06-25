@@ -54,7 +54,7 @@ func connectionTest() error {
 		return err
 	}
 
-	_, err = waitForResult()
+	_, err = waitForResultOK()
 	if err != nil {
 		return err
 	}
@@ -68,7 +68,7 @@ func isAsciiMode() (bool, error) {
 		return false, err
 	}
 
-	responses, err := waitForResult()
+	responses, err := waitForResultOK()
 	if err != nil {
 		return false, err
 	}

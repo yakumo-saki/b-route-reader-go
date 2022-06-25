@@ -7,7 +7,8 @@ const RET_SCAN_FOUND = "EPANDESC"     // SKSCANの機器情報が取得された
 const RET_JOIN_COMPLETE = "EVENT 25 " // SKJOIN に対する応答。
 const RET_ERXUDP = "ERXUDP"           // UDP受信イベント
 
-var RET_STOP_WORDS = []string{RET_OK, RET_SCAN_COMPLETE, RET_FAIL}
+// 一般的な応答ワード [OK, FAIL]
+var RET_STOP_WORDS = []string{RET_OK, RET_FAIL}
 
 // PANDESC
 const RET_PAN_CHANNEL = "Channel:"

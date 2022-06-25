@@ -12,33 +12,48 @@ import (
 var STD_TIMEOUT_DURATION = 15 * time.Second
 var LONG_TIMEOUT_DURATION = 60 * time.Second
 
+//
+func waitForResultStrings(stopWords []string, timeoutDuration time.Duration) ([]string, error) {
+	stopFn := func(line string) bool {
+		if len(stopWords) == 0 {
+			return true
+		}
+		for _, sw := range stopWords {
+			if strings.Contains(line, sw) {
+				return true
+			}
+		}
+		return false
+	}
+	return waitForResultImpl(stopFn, timeoutDuration)
+}
+
 // OK等を返すコマンドの応答を返す
-func waitForResult() ([]string, error) {
-	return waitForResultImpl(RET_STOP_WORDS, STD_TIMEOUT_DURATION)
+func waitForResultOK() ([]string, error) {
+	return waitForResultStrings(RET_STOP_WORDS, STD_TIMEOUT_DURATION)
 }
 
 // SKLL64の応答を返す
 // このコマンドはいきなりIPv6アドレスだけを返してくる
 func waitForResultSKLL64() ([]string, error) {
-	return waitForResultImpl([]string{}, STD_TIMEOUT_DURATION)
+	return waitForResultStrings([]string{}, STD_TIMEOUT_DURATION)
 }
 
 func waitForResultSKSCAN() ([]string, error) {
-	return waitForResultImpl([]string{RET_SCAN_COMPLETE}, LONG_TIMEOUT_DURATION)
+	return waitForResultStrings([]string{RET_SCAN_COMPLETE}, LONG_TIMEOUT_DURATION)
 }
 
 func waitForResultSKJOIN() ([]string, error) {
-	return waitForResultImpl([]string{RET_JOIN_COMPLETE}, LONG_TIMEOUT_DURATION)
+	return waitForResultStrings([]string{RET_JOIN_COMPLETE}, LONG_TIMEOUT_DURATION)
 }
 
 func waitForResultERXUDP() ([]string, error) {
-	return waitForResultImpl([]string{RET_ERXUDP}, LONG_TIMEOUT_DURATION)
+	return waitForResultStrings([]string{RET_ERXUDP}, LONG_TIMEOUT_DURATION)
 }
 
-func waitForResultImpl(stopWords []string, timeoutDuration time.Duration) ([]string, error) {
+func waitForResultImpl(completeCheckFunc func(string) bool, timeoutDuration time.Duration) ([]string, error) {
 
-	log.Debug().Msgf("Response start. timeout=%s stop words=[%s]",
-		timeoutDuration, strings.Join(stopWords, "|"))
+	log.Debug().Msgf("Response start. timeout=%s", timeoutDuration)
 	BYTE_CR := []byte("\r")
 	BYTE_LF := []byte("\n")
 	BYTE_CRLF := []byte("\r\n")
@@ -54,9 +69,6 @@ func waitForResultImpl(stopWords []string, timeoutDuration time.Duration) ([]str
 	var byteBuf []byte
 
 	stopFlag := false
-	if len(stopWords) == 0 {
-		stopFlag = true
-	}
 
 	for {
 		// 一回のreadで読んだデータのバッファ
@@ -108,14 +120,8 @@ func waitForResultImpl(stopWords []string, timeoutDuration time.Duration) ([]str
 
 				result = append(result, lineStr)
 
-				// ストップワード（通常、コマンド応答の末尾に来るワード）を見つけたら終了フラグを立てる
-				// OK を返したあとにさらに応答を返すコマンドがあるため（しかし、そのコマンドは使わない）
-				for _, stopWord := range stopWords {
-					if strings.Contains(lineStr, stopWord) {
-						stopFlag = true
-						break
-					}
-				}
+				stopFlag = (stopFlag || completeCheckFunc(lineStr))
+
 			} else if len(byteBuf) == 1 && byteBuf[0] == LF {
 				// SKLL64の時、LFだけがバッファに残ってしまい無限ループすることへの対策
 				log.Warn().Msgf("executing start with LF workaround")

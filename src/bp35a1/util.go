@@ -43,7 +43,7 @@ func endWithResult(ret []string, find string) bool {
 
 // 応答がOKかFAILのコマンド用のユーティリティメソッド
 func waitForOKResult() error {
-	ret, err := waitForResult()
+	ret, err := waitForResultOK()
 	if err != nil {
 		return err
 	}
