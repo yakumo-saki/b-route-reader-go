@@ -25,7 +25,7 @@ func waitForResultStrings(stopWords []string, timeoutDuration time.Duration) ([]
 		}
 		return false
 	}
-	return waitForResultImpl(stopFn, timeoutDuration)
+	return waitForResult(stopFn, timeoutDuration)
 }
 
 // OK等を返すコマンドの応答を返す
@@ -47,11 +47,14 @@ func waitForResultSKJOIN() ([]string, error) {
 	return waitForResultStrings([]string{RET_JOIN_COMPLETE}, LONG_TIMEOUT_DURATION)
 }
 
-func waitForResultERXUDP() ([]string, error) {
-	return waitForResultStrings([]string{RET_ERXUDP}, LONG_TIMEOUT_DURATION)
+func waitForResultERXUDP(tid string) ([]string, error) {
+	stopFn := func(line string) bool {
+		return isEchonetUnicastResponse(line, tid)
+	}
+	return waitForResult(stopFn, LONG_TIMEOUT_DURATION)
 }
 
-func waitForResultImpl(completeCheckFunc func(string) bool, timeoutDuration time.Duration) ([]string, error) {
+func waitForResult(completeCheckFunc func(string) bool, timeoutDuration time.Duration) ([]string, error) {
 
 	log.Debug().Msgf("Response start. timeout=%s", timeoutDuration)
 	BYTE_CR := []byte("\r")

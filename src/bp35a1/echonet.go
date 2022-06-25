@@ -18,8 +18,8 @@ var parser smartmeter.ELSmartMeterParser
 // 一度だけ取得すればあとは変わらないものを取得して、パーサーに渡す
 func GetSmartMeterInitialData(ipv6 string) error {
 	var err error
-
-	msg := echonet.CreateEchonetGetMessage(9000, []byte{echonet.P_DELTA_UNIT, echonet.P_MULTIPLIER})
+	tid := uint16(9000)
+	msg := echonet.CreateEchonetGetMessage(tid, []byte{echonet.P_DELTA_UNIT, echonet.P_MULTIPLIER})
 
 	err = skSendTo(ipv6, msg)
 	if err != nil {
@@ -27,13 +27,14 @@ func GetSmartMeterInitialData(ipv6 string) error {
 	}
 
 	log.Debug().Msgf("Echonet GET message sent.")
+	tidStr := fmt.Sprintf("%04d", tid)
 
-	ret, err := waitForResultERXUDP()
+	ret, err := waitForResultERXUDP(tidStr)
 	if err != nil {
 		return err
 	}
 
-	responses := findEchonetResponse(ret, "9000")
+	responses := findEchonetResponse(ret, tidStr)
 	if len(responses) == 0 {
 		return fmt.Errorf("failed to get echonet response: %w", err)
 	}
@@ -84,12 +85,13 @@ func GetElectricData(ipv6 string) (ElectricData, error) {
 
 	log.Debug().Msgf("Echonet property GET message sent.")
 
-	ret, err := waitForResultERXUDP()
+	tidStr := fmt.Sprintf("%04d", tid)
+	ret, err := waitForResultERXUDP(tidStr)
 	if err != nil {
 		return nullResult, err
 	}
 
-	elret := findEchonetResponse(ret, fmt.Sprintf("%04d", tid))
+	elret := findEchonetResponse(ret, tidStr)
 	if len(elret) != 1 {
 		return nullResult, fmt.Errorf("multiple echonet responses found, maybe bug")
 	}
@@ -184,4 +186,38 @@ func findEchonetResponse(received []string, tid string) []string {
 		}
 	}
 	return ret
+}
+
+// ERXUDP FE80:0000:0000:0000:021C:6400:03CD:76A4 FE80:0000:0000:0000:021D:1290:0004:263D
+// 0E1A 0E1A 001C640003CD76A4 1 0018 1081100202880105FF017202E7040000029CE80400280028
+func isEchonetUnicastResponse(receivedErxUDP string, tid string) bool {
+	if !strings.HasPrefix(receivedErxUDP, "ERXUDP") {
+		log.Debug().Msg("not start with ERXUDP")
+		return false
+	}
+	values := strings.Split(receivedErxUDP, " ")
+	if len(values) != 9 {
+		log.Debug().Msg("ERXUDP splitted length != 9")
+		return false
+	}
+
+	switch {
+	case !strings.HasPrefix(values[1], "FE80"):
+		log.Debug().Msg("source ipv6 address not begin with FE80")
+		return false // 送信元がIPv6 local
+	case !strings.HasPrefix(values[2], "FE80"):
+		log.Debug().Msg("destination ipv6 address not begin with FE80")
+		return false // 送信先がIPv6 local
+	case !strings.HasPrefix(values[3], "0E1A"):
+		log.Debug().Msg("source port is not 0E1A(3610)")
+		return false // 送信元ポートが3610
+	case !strings.HasPrefix(values[4], "0E1A"):
+		log.Debug().Msg("destination port is not 0E1A(3610)")
+		return false // 送信先ポートが3610
+	case !strings.Contains(values[8], tid):
+		log.Debug().Msgf("TransactionId %s is not contains in echonet lite msg", tid)
+		return false // TransactionIDがデータに含まれる
+	}
+
+	return true
 }
