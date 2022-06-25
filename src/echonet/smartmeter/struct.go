@@ -1,7 +1,7 @@
 package smartmeter
 
 type NowDenryuu struct {
-	Rphase int
-	Tphase int
-	Total  int
+	Rphase float64
+	Tphase float64
+	Total  float64
 }

@@ -47,7 +47,7 @@ func run() int {
 	}
 
 	// echonet start
-	err = bp35a1.InitEchonet(ipv6)
+	err = bp35a1.GetSmartMeterInitialData(ipv6)
 	if err != nil {
 		log.Err(err).Msg("Error occured while initializing echonet lite")
 		exitcode = 1
@@ -56,14 +56,15 @@ func run() int {
 
 	// main loop
 	for i := 0; i < 2; i++ {
-		ret, err := bp35a1.GetBrouteData(ipv6)
+		ret, err := bp35a1.GetElectricData(ipv6)
 		if err != nil {
 			log.Err(err).Msg("Error occured while getting smartmeter data")
 			exitcode = 1
 			goto EXIT
 		}
 
-		log.Debug().Msgf("%s", ret)
+		// TODO implement this!
+		log.Info().Msgf("%s", ret)
 
 		// 連続でデータを取得しないためのwait。本当は規格的に20秒以上の間隔が必要
 		if i > 1 {

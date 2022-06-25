@@ -16,7 +16,7 @@ var LAST_TID uint16 = 1000
 var parser smartmeter.ELSmartMeterParser
 
 // 一度だけ取得すればあとは変わらないものを取得して、パーサーに渡す
-func InitEchonet(ipv6 string) error {
+func GetSmartMeterInitialData(ipv6 string) error {
 	var err error
 
 	msg := echonet.CreateEchonetGetMessage(9000, []byte{echonet.P_DELTA_UNIT, echonet.P_MULTIPLIER})
@@ -34,14 +34,16 @@ func InitEchonet(ipv6 string) error {
 	}
 
 	responses := findEchonetResponse(ret, "9000")
-	log.Info().Msg(responses[0])
+	if len(responses) == 0 {
+		return fmt.Errorf("failed to get echonet response: %w", err)
+	}
 	el, err := echonet.Parse(responses[0])
 	if err != nil {
 		return fmt.Errorf("failed to parse response as echonet msg: %w", err)
 	}
 
 	parser = smartmeter.ELSmartMeterParser{}
-	_, err = parser.ParseAndStoreD0DeltaUnit(el.Properties[echonet.P_DELTA_UNIT])
+	_, err = parser.ParseAndStoreE1DeltaUnit(el.Properties[echonet.P_DELTA_UNIT])
 	if err != nil {
 		return fmt.Errorf("failed to parse P_DELTA_UNIT(D0): %w", err)
 	}
@@ -55,10 +57,10 @@ func InitEchonet(ipv6 string) error {
 }
 
 //
-func GetBrouteData(ipv6 string) ([]string, error) {
+func GetElectricData(ipv6 string) (ElectricData, error) {
 
 	var err error
-	result := []string{"ERR"}
+	nullResult := ElectricData{}
 
 	tid := LAST_TID + 1
 	if tid >= 9000 {
@@ -67,30 +69,76 @@ func GetBrouteData(ipv6 string) ([]string, error) {
 		log.Info().Msg("TID reached 9000. set back to 1000.")
 	}
 
-	// TODO 積算追加
-	msg := echonet.CreateEchonetGetMessage(tid, []byte{echonet.P_NOW_DENRYOKU, echonet.P_NOW_DENRYUU})
+	// 積算追加
+	targets := []byte{
+		echonet.P_NOW_DENRYOKU,
+		echonet.P_NOW_DENRYUU,
+		echonet.P_DELTA_DENRYOKU,
+	}
+	msg := echonet.CreateEchonetGetMessage(tid, targets)
 
 	err = skSendTo(ipv6, msg)
 	if err != nil {
-		return result, err
+		return nullResult, err
 	}
 
 	log.Debug().Msgf("Echonet property GET message sent.")
 
 	ret, err := waitForResultERXUDP()
 	if err != nil {
-		return result, err
+		return nullResult, err
+	}
+
+	elret := findEchonetResponse(ret, fmt.Sprintf("%04d", tid))
+	if len(elret) != 1 {
+		return nullResult, fmt.Errorf("multiple echonet responses found, maybe bug")
+	}
+
+	elstr := elret[0]
+	elmsg, err := echonet.Parse(elstr)
+	if err != nil {
+		return nullResult, err
+	}
+
+	electricData, err := parseELMsgToElectricData(elmsg)
+	if err != nil {
+		return nullResult, err
 	}
 
 	LAST_TID = tid
 
-	// DEBUG: SKSENDTO のDATALENがバグっていればコマンドが欠けたりしてエラーになるはず
-	// err = connectionTest()
-	// if err != nil {
-	// 	return result, err
-	// }
+	return electricData, nil
+}
+
+func parseELMsgToElectricData(elmsg echonet.EchonetLite) (ElectricData, error) {
+
+	ret := ElectricData{}
+	nowDenryokuBytes := elmsg.Properties[echonet.P_NOW_DENRYOKU]
+	nowDenryoku, err := parser.ParseE7NowDenryoku(nowDenryokuBytes)
+	if err != nil {
+		return ret, err
+	}
+
+	deltaDenryokuBytes := elmsg.Properties[echonet.P_DELTA_DENRYOKU]
+	deltaDenryoku, err := parser.ParseE0DeltaDenryoku(deltaDenryokuBytes)
+	if err != nil {
+		return ret, err
+	}
+
+	nowDenryuuBytes := elmsg.Properties[echonet.P_NOW_DENRYUU]
+	nowDenryuu, err := parser.ParseE8NowDenryuu(nowDenryuuBytes)
+	if err != nil {
+		return ret, err
+	}
+
+	ret.DeltakWh = deltaDenryoku
+	ret.Watt = nowDenryoku
+	ret.RphaseAmp = nowDenryuu.Rphase
+	ret.TphaseAmp = nowDenryuu.Tphase
+	ret.TotalAmp = nowDenryuu.Total
 
 	return ret, nil
+
 }
 
 // SKSENDTO コマンドを発行する。 Echonet通信用

@@ -1,6 +1,7 @@
 package smartmeter
 
 // EPC 0xE7 瞬時電流計測値をパースする。
+// TODO mock
 func (sm *ELSmartMeterParser) ParseE8NowDenryuu(data []byte) (NowDenryuu, error) {
 
 	ret := NowDenryuu{}

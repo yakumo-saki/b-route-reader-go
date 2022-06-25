@@ -8,7 +8,7 @@ type ELSmartMeterParser struct {
 
 	// 0xE1 積算電力量単位 積算電力量にこの値を掛けると kWh になる。
 	// 0.0001 〜 10000 までの値を取る(10^nのみで中途半端な値はない)
-	unit int
+	unit float64
 }
 
 func (sm *ELSmartMeterParser) checkPreCondition() error {

@@ -32,3 +32,4 @@ running at your coding pc
 
 * socatで転送する前に minicom でハングアップを行っておく必要があります。
 * minicom を起動して ctrl-a -> h で `hangup line?` -> `yes` した後、ctrl-a -> q で終了します。（ctrl-a -> x ではない）
+* このプログラムを実行すると、ローカルエコーがオフになるのでminicomには何も表示されませんが気にせずコマンドを入れることができます。
