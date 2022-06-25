@@ -34,11 +34,11 @@ func GetSmartMeterInitialData(ipv6 string) error {
 		return err
 	}
 
-	responses := findEchonetResponse(ret, tidStr)
-	if len(responses) == 0 {
+	echonetResponse := findEchonetResponses(ret, tidStr)
+	if len(echonetResponse) == 0 {
 		return fmt.Errorf("failed to get echonet response: %w", err)
 	}
-	el, err := echonet.Parse(responses[0])
+	el, err := echonet.Parse(echonetResponse)
 	if err != nil {
 		return fmt.Errorf("failed to parse response as echonet msg: %w", err)
 	}
@@ -91,13 +91,12 @@ func GetElectricData(ipv6 string) (ElectricData, error) {
 		return nullResult, err
 	}
 
-	elret := findEchonetResponse(ret, tidStr)
-	if len(elret) != 1 {
-		return nullResult, fmt.Errorf("multiple echonet responses found, maybe bug")
+	elret := findEchonetResponses(ret, tidStr)
+	if len(elret) == 0 {
+		return nullResult, fmt.Errorf("echonet responses not found")
 	}
 
-	elstr := elret[0]
-	elmsg, err := echonet.Parse(elstr)
+	elmsg, err := echonet.Parse(elret)
 	if err != nil {
 		return nullResult, err
 	}
@@ -178,14 +177,14 @@ func skSendTo(ipv6 string, data []byte) error {
 }
 
 // Unicastで返ってくるEchonet Lite応答を抜き出して返す
-func findEchonetResponse(received []string, tid string) []string {
-	ret := make([]string, 0)
+func findEchonetResponses(received []string, tid string) string {
 	for _, v := range received {
-		if strings.Contains(v, tid) {
-			ret = append(ret, v)
+		if isEchonetUnicastResponse(v, tid) {
+			values := strings.Split(v, " ")
+			return values[8]
 		}
 	}
-	return ret
+	return ""
 }
 
 // ERXUDP FE80:0000:0000:0000:021C:6400:03CD:76A4 FE80:0000:0000:0000:021D:1290:0004:263D

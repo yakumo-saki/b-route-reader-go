@@ -15,7 +15,7 @@ func Test_findFirstEchonetUnicast(t *testing.T) {
 		"ERXUDP FE80:0000:0000:0000:0000:0000:5678:1234 FE80:0000:0000:0000:1234:5678:ABCD:12EF 0E1A 0E1A 000000000000001234 1 0018 1081100202880105FF017202E7040000029CE80400280028",
 	}
 
-	ret := findEchonetResponse(testcase, "1002")
+	ret := findEchonetResponses(testcase, "1002")
 
 	assert.Equal(1, len(ret))
 	assert.Equal(testcase[2], ret[0])
