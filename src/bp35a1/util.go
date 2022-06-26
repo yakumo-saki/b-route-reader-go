@@ -54,11 +54,3 @@ func waitForOKResult() error {
 	return fmt.Errorf("response is not %s", RET_OK)
 
 }
-
-func dumpResult(result []string) {
-	log.Debug().Msgf("Dump Response ------------------")
-	for _, v := range result {
-		log.Debug().Msgf("%s", v)
-	}
-	log.Debug().Msgf("Dump Response END --------------")
-}

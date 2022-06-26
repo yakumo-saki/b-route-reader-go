@@ -191,7 +191,6 @@ func findEchonetResponses(received []string, tid string) string {
 // 0E1A 0E1A 001C640003CD76A4 1 0018 1081100202880105FF017202E7040000029CE80400280028
 func isEchonetUnicastResponse(receivedErxUDP string, tid string) bool {
 	if !strings.HasPrefix(receivedErxUDP, "ERXUDP") {
-		log.Debug().Msg("not start with ERXUDP")
 		return false
 	}
 	values := strings.Split(receivedErxUDP, " ")
@@ -207,9 +206,15 @@ func isEchonetUnicastResponse(receivedErxUDP string, tid string) bool {
 	case !strings.HasPrefix(values[2], "FE80"):
 		log.Debug().Msg("destination ipv6 address not begin with FE80")
 		return false // 送信先がIPv6 local
+	case strings.HasPrefix(values[3], "02CC"):
+		log.Debug().Msg("source port is 02CC(716:PANA) not echonet lite")
+		return false
 	case !strings.HasPrefix(values[3], "0E1A"):
 		log.Debug().Msg("source port is not 0E1A(3610)")
 		return false // 送信元ポートが3610
+	case strings.HasPrefix(values[4], "02CC"):
+		log.Debug().Msg("source port is 02CC(716:PANA) not echonet lite")
+		return false
 	case !strings.HasPrefix(values[4], "0E1A"):
 		log.Debug().Msg("destination port is not 0E1A(3610)")
 		return false // 送信先ポートが3610
