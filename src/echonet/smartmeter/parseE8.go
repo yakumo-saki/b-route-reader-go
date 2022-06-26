@@ -26,8 +26,8 @@ func (sm *ELSmartMeterParser) ParseE8NowDenryuu(data []byte) (NowDenryuu, error)
 		return ret, fmt.Errorf("failed to parse Tphase value 0x%02X%02X: %w", data[2], data[3], err)
 	}
 
-	ret.Rphase = float64(rPhase) * 0.1
-	ret.Tphase = float64(tPhase) * 0.1
+	ret.Rphase = float64(rPhase) * float64(0.1)
+	ret.Tphase = float64(tPhase) * float64(0.1)
 	ret.Total = ret.Rphase + ret.Tphase
 	return ret, nil
 }

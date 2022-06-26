@@ -16,15 +16,17 @@ func (sm SmartMeter) String() string {
 		sm.Channel, sm.ChannelPage, sm.PanId, sm.Addr, sm.PairId)
 }
 
-type ElectricData struct {
-	RphaseAmp float64 // R相電流アンペア Signed Short (0.1A単位)
-	TphaseAmp float64 // T相電流アンペア Signed Short (0.1A単位)
-	TotalAmp  float64 // 合計電流アンペア Signed Short (0.1A単位)
-	DeltakWh  float64 // 積算電力量
-	Watt      int     // 瞬間電力量
-}
+type ElectricData map[string]float64
 
-func (ed ElectricData) String() string {
-	return fmt.Sprintf("ElectricData: Amps Total=%.1f(R=%.1f T=%.1f) Watt=%d Delta=%.2f",
-		ed.TotalAmp, ed.RphaseAmp, ed.TphaseAmp, ed.Watt, ed.DeltakWh)
-}
+// {
+// 	RphaseAmp float64 // R相電流アンペア Signed Short (0.1A単位)
+// 	TphaseAmp float64 // T相電流アンペア Signed Short (0.1A単位)
+// 	TotalAmp  float64 // 合計電流アンペア Signed Short (0.1A単位)
+// 	DeltakWh  float64 // 積算電力量
+// 	Watt      int     // 瞬間電力量
+// }
+
+// func (ed ElectricData) String() string {
+// 	return fmt.Sprintf("ElectricData: Amps Total=%.1f(R=%.1f T=%.1f) Watt=%d Delta=%.2f",
+// 		ed["TotalAmp"], ed["RphaseAmp"], ed["TphaseAmp"], ed["Watt"], ed["DeltakWh"])
+// }

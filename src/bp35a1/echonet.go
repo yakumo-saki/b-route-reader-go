@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/rs/zerolog/log"
+	"github.com/yakumo-saki/b-route-reader-go/src/config"
 	"github.com/yakumo-saki/b-route-reader-go/src/echonet"
 	"github.com/yakumo-saki/b-route-reader-go/src/echonet/smartmeter"
 )
@@ -57,7 +58,7 @@ func GetSmartMeterInitialData(ipv6 string) error {
 	return nil
 }
 
-//
+// 電力消費量を取得する
 func GetElectricData(ipv6 string) (ElectricData, error) {
 
 	var err error
@@ -74,21 +75,36 @@ func GetElectricData(ipv6 string) (ElectricData, error) {
 	targets := []byte{
 		echonet.P_NOW_DENRYOKU,
 		echonet.P_NOW_DENRYUU,
-		echonet.P_DELTA_DENRYOKU,
+		// echonet.P_DELTA_DENRYOKU,
 	}
 	msg := echonet.CreateEchonetGetMessage(tid, targets)
 
-	err = skSendTo(ipv6, msg)
-	if err != nil {
-		return nullResult, err
-	}
-
-	log.Debug().Msgf("Echonet property GET message sent.")
-
+	var ret []string
 	tidStr := fmt.Sprintf("%04d", tid)
-	ret, err := waitForResultERXUDP(tidStr)
-	if err != nil {
-		return nullResult, err
+
+	// データ取得時に応答を返さない場合があるのでここだけリトライする
+	retry := 0
+	for {
+		err = skSendTo(ipv6, msg)
+		if err != nil {
+			return nullResult, err
+		}
+
+		log.Debug().Msgf("Echonet property GET message sent.")
+
+		ret, err = waitForResultERXUDP(tidStr)
+		if err != nil {
+			if strings.Contains(err.Error(), "timeout reached") {
+				if retry < config.MAX_ECHONET_GET_RETRY {
+					log.Warn().Msgf("No smartmeter response. retrying %d/%d",
+						retry, config.MAX_ECHONET_GET_RETRY)
+					continue
+				}
+			}
+			return nullResult, err
+		}
+
+		break // データ取れた
 	}
 
 	elret := findEchonetResponses(ret, tidStr)
@@ -114,29 +130,30 @@ func GetElectricData(ipv6 string) (ElectricData, error) {
 func parseELMsgToElectricData(elmsg echonet.EchonetLite) (ElectricData, error) {
 
 	ret := ElectricData{}
-	nowDenryokuBytes := elmsg.Properties[echonet.P_NOW_DENRYOKU]
-	nowDenryoku, err := parser.ParseE7NowDenryoku(nowDenryokuBytes)
-	if err != nil {
-		return ret, err
+	for key, value := range elmsg.Properties {
+		switch key {
+		case echonet.P_NOW_DENRYOKU:
+			nowDenryoku, err := parser.ParseE7NowDenryoku(value)
+			if err != nil {
+				return ret, err
+			}
+			ret[fmt.Sprintf("%02X", key)] = float64(nowDenryoku)
+		case echonet.P_DELTA_DENRYOKU:
+			deltaDenryoku, err := parser.ParseE0DeltaDenryoku(value)
+			if err != nil {
+				return ret, err
+			}
+			ret[fmt.Sprintf("%02X", key)] = float64(deltaDenryoku)
+		case echonet.P_NOW_DENRYUU:
+			nowDenryuu, err := parser.ParseE8NowDenryuu(value)
+			if err != nil {
+				return ret, err
+			}
+			ret[fmt.Sprintf("%02X_Rphase", key)] = float64(nowDenryuu.Rphase)
+			ret[fmt.Sprintf("%02X_Tphase", key)] = float64(nowDenryuu.Tphase)
+			ret[fmt.Sprintf("%02X", key)] = float64(nowDenryuu.Total)
+		}
 	}
-
-	deltaDenryokuBytes := elmsg.Properties[echonet.P_DELTA_DENRYOKU]
-	deltaDenryoku, err := parser.ParseE0DeltaDenryoku(deltaDenryokuBytes)
-	if err != nil {
-		return ret, err
-	}
-
-	nowDenryuuBytes := elmsg.Properties[echonet.P_NOW_DENRYUU]
-	nowDenryuu, err := parser.ParseE8NowDenryuu(nowDenryuuBytes)
-	if err != nil {
-		return ret, err
-	}
-
-	ret.DeltakWh = deltaDenryoku
-	ret.Watt = nowDenryoku
-	ret.RphaseAmp = nowDenryuu.Rphase
-	ret.TphaseAmp = nowDenryuu.Tphase
-	ret.TotalAmp = nowDenryuu.Total
 
 	return ret, nil
 

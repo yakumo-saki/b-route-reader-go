@@ -1,7 +1,13 @@
 package main
 
 import (
+	"encoding/json"
+	"fmt"
+	"io/ioutil"
 	"os"
+	"os/exec"
+	"runtime"
+	"strings"
 	"time"
 
 	"github.com/rs/zerolog/log"
@@ -54,8 +60,8 @@ func run() int {
 		goto EXIT
 	}
 
-	// main loop
-	for i := 0; i < 2; i++ {
+	for {
+
 		ret, err := bp35a1.GetElectricData(ipv6)
 		if err != nil {
 			log.Err(err).Msg("Error occured while getting smartmeter data")
@@ -63,14 +69,17 @@ func run() int {
 			goto EXIT
 		}
 
-		// TODO implement this!
-		log.Info().Msgf("%s", ret)
+		log.Info().Msgf("Smartmeter Response: %s", ret)
+		err = handleResult(ret)
+		if err != nil {
+			log.Err(err).Msg("Error occured while executing EXEC_CMD")
+			exitcode = 1
+			goto EXIT
+		}
 
 		// 連続でデータを取得しないためのwait。本当は規格的に20秒以上の間隔が必要
-		if i > 1 {
-			log.Info().Msg("Wait for request data...")
-			time.Sleep(10 * time.Second)
-		}
+		log.Info().Msg("Wait for request data...")
+		time.Sleep(10 * time.Second)
 	}
 
 EXIT:
@@ -84,4 +93,62 @@ EXIT:
 	}
 
 	return exitcode
+}
+
+func handleResult(data bp35a1.ElectricData) error {
+
+	json, err := json.Marshal(data)
+	if err != nil {
+		return err
+	}
+
+	f, err := ioutil.TempFile(os.TempDir(), "b-route-")
+	if err != nil {
+		return err
+	}
+
+	written, err := f.Write(json)
+	if err != nil {
+		return err
+	}
+	if written != len(json) {
+		return fmt.Errorf("bytes written != actual")
+	}
+
+	filepath := f.Name()
+	f.Close()
+
+	// exec
+	output, err := exec.Command(config.EXEC_CMD, f.Name()).CombinedOutput()
+	if err != nil {
+		return err
+	}
+	outputByteStringsToLog(output)
+
+	os.Remove(filepath)
+
+	return nil
+}
+
+func outputByteStringsToLog(byteStrings []byte) {
+	newline := "\n"
+	switch runtime.GOOS {
+	case "windows":
+		newline = "\r\n"
+	case "darwin":
+		newline = "\n"
+	case "linux":
+		newline = "\n"
+	}
+
+	allStrings := string(byteStrings)
+	lines := strings.Split(allStrings, newline)
+	for _, v := range lines {
+		line := v
+		line = strings.ReplaceAll(line, "\r", "")
+		line = strings.ReplaceAll(line, "\n", "")
+		if len(line) > 0 {
+			log.Info().Msgf("EXEC OUTPUT: %s", line)
+		}
+	}
 }
