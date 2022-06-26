@@ -1,0 +1,7 @@
+# このファイルを /etc/defaults/b-route-reader-go に置くことで
+# systemdのunitから読み込まれます。
+B_ROUTE_ID = "000011112222333344445555666677778888"
+B_ROUTE_PASSWORD = "ABCDEFGHIJKL"
+SERIAL = "/dev/ttyAMA0"
+EXEC_CMD = "./dist/zabbix.sh"
+LOG_LEVEL=INFO

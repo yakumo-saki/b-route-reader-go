@@ -1,0 +1,11 @@
+[Unit]
+Description=B-Route Smartmeter reader
+After=network.target
+
+[Service]
+EnvironmentFile=/etc/default/b-route-reader-go
+Type=simple
+ExecStart=/work/b-route-reader-go/b-route-reader-go
+
+[Install]
+WantedBy=multi-user.target

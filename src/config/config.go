@@ -1,6 +1,11 @@
 package config
 
-import "os"
+import (
+	"os"
+	"strings"
+)
+
+var LOG_LEVEL = ""
 
 var B_ROUTE_ID = ""
 var B_ROUTE_PASSWORD = ""
@@ -15,10 +20,25 @@ var MAX_ECHONET_GET_RETRY = 3
 
 // 環境変数からconfigをセット
 func Initialize() {
+	LOG_LEVEL = os.Getenv("LOG_LEVEL")
 	B_ROUTE_ID = os.Getenv("B_ROUTE_ID")
 	B_ROUTE_PASSWORD = os.Getenv("B_ROUTE_PASSWORD")
 	SERIAL = os.Getenv("SERIAL")
 	EXEC_CMD = os.Getenv("EXEC_CMD")
+
+	if LOG_LEVEL == "" {
+		LOG_LEVEL = "INFO"
+	} else {
+		LOG_LEVEL = strings.ToUpper(LOG_LEVEL)
+		switch LOG_LEVEL {
+		case "DEBUG":
+		case "INFO":
+		case "WARN":
+		case "ERROR":
+		default:
+			panic("LOG_LEVEL is not in [DEBUG|INFO|WARN|ERROR]")
+		}
+	}
 
 	if B_ROUTE_ID == "" {
 		panic("B_ROUTE_ID env value is not set")

@@ -25,8 +25,8 @@ func main() {
 }
 
 func run() int {
-	logger.Initiallize()
 	config.Initialize()
+	logger.Initiallize()
 
 	var ipv6 string
 
