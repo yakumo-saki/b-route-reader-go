@@ -3,9 +3,14 @@ Description=B-Route Smartmeter reader
 After=network.target
 
 [Service]
+# rootで実行する必要はありません。
+# BP35A1が接続されたシリアルポートにアクセスできるユーザーを指定してください。
+# dialoutグループに属していれば大丈夫なはずです
+User=root
 EnvironmentFile=/etc/default/b-route-reader-go
 Type=simple
 ExecStart=/work/b-route-reader-go/b-route-reader-go
+Restart=Always
 
 [Install]
 WantedBy=multi-user.target
