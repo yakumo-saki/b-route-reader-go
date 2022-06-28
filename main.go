@@ -104,7 +104,7 @@ func runWithSerialPort() error {
 
 func handleResult(data bp35a1.ElectricData) error {
 
-	jsonMap := map[string] interface{}
+	jsonMap := map[string]interface{}{}
 	for k, v := range data {
 		jsonMap[k] = v
 	}
