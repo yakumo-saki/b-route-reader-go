@@ -28,8 +28,6 @@ func run() int {
 	config.Initialize()
 	logger.Initiallize()
 
-	var ipv6 string
-
 	log.Info().Msg("Start")
 	err := bp35a1.Connect()
 	if err != nil {
@@ -38,48 +36,10 @@ func run() int {
 		goto EXIT
 	}
 
-	err = bp35a1.StartConnection()
+	err = runWithSerialPort()
 	if err != nil {
-		log.Err(err).Msg("Test connection failed. Exiting.")
 		exitcode = 1
-		goto EXIT
-	}
-
-	ipv6, err = bp35a1.InitializeBrouteConnection()
-	if err != nil {
-		log.Err(err).Msg("Cannot initialize B-route connection. Exiting.")
-		exitcode = 1
-		goto EXIT
-	}
-
-	// echonet start
-	err = bp35a1.GetSmartMeterInitialData(ipv6)
-	if err != nil {
-		log.Err(err).Msg("Error occured while initializing echonet lite")
-		exitcode = 1
-		goto EXIT
-	}
-
-	for {
-
-		ret, err := bp35a1.GetElectricData(ipv6)
-		if err != nil {
-			log.Err(err).Msg("Error occured while getting smartmeter data")
-			exitcode = 1
-			goto EXIT
-		}
-
-		log.Info().Msgf("Smartmeter Response: %s", ret)
-		err = handleResult(ret)
-		if err != nil {
-			log.Err(err).Msg("Error occured while executing EXEC_CMD")
-			exitcode = 1
-			goto EXIT
-		}
-
-		// 連続でデータを取得しないためのwait。本当は規格的に20秒以上の間隔が必要
-		log.Info().Msg("Wait for request data...")
-		time.Sleep(10 * time.Second)
+		log.Err(err).Msg("ERR")
 	}
 
 EXIT:
@@ -95,9 +55,62 @@ EXIT:
 	return exitcode
 }
 
+func runWithSerialPort() error {
+	var err error
+	var ipv6 string
+
+	err = bp35a1.StartConnection()
+	if err != nil {
+		return fmt.Errorf("test connection failed: %w", err)
+	}
+
+	ipv6, err = bp35a1.InitializeBrouteConnection()
+	if err != nil {
+		log.Err(err).Msg(". Exiting.")
+		return fmt.Errorf("cannot initialize B-route connection: %w", err)
+	}
+
+	// echonet start
+	err = bp35a1.GetSmartMeterInitialData(ipv6)
+	if err != nil {
+		return fmt.Errorf("error occured while initializing echonet lite: %w", err)
+	}
+
+	log.Info().Msg("Starting main loop")
+
+	// TODO シグナルハンドリング
+	// TODO 積算電力量を数分に一回取得する 3min ?
+
+	for {
+
+		ret, err := bp35a1.GetElectricData(ipv6)
+		if err != nil {
+			return fmt.Errorf("error occured while getting smartmeter data: %w", err)
+		}
+
+		log.Info().Msgf("Smartmeter Response: %v", ret)
+		err = handleResult(ret)
+		if err != nil {
+			return fmt.Errorf("error occured while executing %s: %w", config.EXEC_CMD, err)
+		}
+
+		// 連続でデータを取得しないためのwait。本当は規格的に20秒以上の間隔が必要
+		log.Info().Msg("Wait for request data...")
+		time.Sleep(10 * time.Second)
+	}
+
+	return nil
+}
+
 func handleResult(data bp35a1.ElectricData) error {
 
-	json, err := json.Marshal(data)
+	jsonMap := map[string] interface{}
+	for k, v := range data {
+		jsonMap[k] = v
+	}
+	jsonMap["datetime"] = time.Now().Format("2006-01-02T15:04:05.999Z")
+
+	json, err := json.Marshal(jsonMap)
 	if err != nil {
 		return err
 	}
