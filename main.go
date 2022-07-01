@@ -79,27 +79,38 @@ func runWithSerialPort() error {
 	log.Info().Msg("Starting main loop")
 
 	// TODO シグナルハンドリング
-	// TODO 積算電力量を数分に一回取得する 3min ?
+
+	nowTimer := time.NewTimer(config.NOW_CONSUMPTION_WAIT)
+	totalTimer := time.NewTimer(config.TOTAL_CONSUMPTION_WAIT)
 
 	for {
 
-		ret, err := bp35a1.GetElectricData(ipv6)
-		if err != nil {
-			return fmt.Errorf("error occured while getting smartmeter data: %w", err)
-		}
+		select {
+		case <-nowTimer.C:
+			ret, err := bp35a1.GetNowConsumptionData(ipv6)
+			if err != nil {
+				return fmt.Errorf("error occured while getting consumption: %w", err)
+			}
 
-		log.Info().Msgf("Smartmeter Response: %v", ret)
-		err = handleResult(ret)
-		if err != nil {
-			return fmt.Errorf("error occured while executing %s: %w", config.EXEC_CMD, err)
-		}
+			log.Info().Msgf("Smartmeter Response: %v", ret)
+			err = handleResult(ret)
+			if err != nil {
+				return fmt.Errorf("error occured while executing %s: %w", config.EXEC_CMD, err)
+			}
+		case <-totalTimer.C:
+			ret, err := bp35a1.GetDeltaConsumptionData(ipv6)
+			if err != nil {
+				return fmt.Errorf("error occured while getting delta consumption: %w", err)
+			}
 
-		// 連続でデータを取得しないためのwait。本当は規格的に20秒以上の間隔が必要
-		log.Info().Msg("Wait for request data...")
-		time.Sleep(10 * time.Second)
+			log.Info().Msgf("Smartmeter Response: %v", ret)
+			err = handleResult(ret)
+			if err != nil {
+				return fmt.Errorf("error occured while executing %s: %w", config.EXEC_CMD, err)
+			}
+		}
 	}
 
-	return nil
 }
 
 func handleResult(data bp35a1.ElectricData) error {
@@ -161,7 +172,7 @@ func outputByteStringsToLog(byteStrings []byte) {
 		line = strings.ReplaceAll(line, "\r", "")
 		line = strings.ReplaceAll(line, "\n", "")
 		if len(line) > 0 {
-			log.Info().Msgf("EXEC OUTPUT: %s", line)
+			log.Debug().Msgf("EXEC OUTPUT: %s", line)
 		}
 	}
 }

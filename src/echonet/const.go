@@ -20,9 +20,10 @@ var OPC_INF = byte(0x73) // インスタンスリスト通知
 var P_GET_PROPERTY_MAP = byte(0x9F)
 var P_SERIAL_NO = byte(0x8D)
 
-var P_DELTA_DENRYOKU = byte(0xE0)
-var P_NOW_DENRYOKU = byte(0xE7) // E7瞬時電力。 4byte HEX signed long
-var P_NOW_DENRYUU = byte(0xE8)  // E8瞬時電流。2byte HEX * 2(R相 T相) 0.1A単位。T相が0x7FFDの場合単相2線式
+var P_DELTA_DENRYOKU = byte(0xE0)   // E0 積算電力量計測値（正方向）
+var P_DELTA_DENRYOKU_R = byte(0xE3) // E3 積算電力量計測値（逆方向）
+var P_NOW_DENRYOKU = byte(0xE7)     // E7瞬時電力。 4byte HEX signed long
+var P_NOW_DENRYUU = byte(0xE8)      // E8瞬時電流。2byte HEX * 2(R相 T相) 0.1A単位。T相が0x7FFDの場合単相2線式
 var P_DELTA_HISTORY = byte(0xE2)
 
 // 係数。D3 すべての値にこの値を乗算する必要がある。応答は10進数

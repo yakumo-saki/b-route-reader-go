@@ -1,5 +1,7 @@
 package echonet
 
+type TransactionId uint16
+
 // EchonetLite(=EL)電文
 type EchonetLite struct {
 	Ehd           string          // 1081固定

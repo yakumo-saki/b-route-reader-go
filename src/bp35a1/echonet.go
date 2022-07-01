@@ -19,7 +19,7 @@ var parser smartmeter.ELSmartMeterParser
 // 一度だけ取得すればあとは変わらないものを取得して、パーサーに渡す
 func GetSmartMeterInitialData(ipv6 string) error {
 	var err error
-	tid := uint16(9000)
+	tid := echonet.TransactionId(9000)
 	msg := echonet.CreateEchonetGetMessage(tid, []byte{echonet.P_DELTA_UNIT, echonet.P_MULTIPLIER})
 
 	err = skSendTo(ipv6, msg)
@@ -58,53 +58,66 @@ func GetSmartMeterInitialData(ipv6 string) error {
 	return nil
 }
 
-// 電力消費量を取得する
-func GetElectricData(ipv6 string) (ElectricData, error) {
-
-	var err error
-	nullResult := ElectricData{}
-
-	tid := LAST_TID + 1
-	if tid >= 9000 {
+// あたらしいTransactionIDを生成して文字列で返す.
+func getNewTid() echonet.TransactionId {
+	LAST_TID = LAST_TID + 1
+	if LAST_TID >= 9000 {
 		LAST_TID = 1000
-		tid = 1000
 		log.Info().Msg("TID reached 9000. set back to 1000.")
 	}
+	return echonet.TransactionId(LAST_TID)
+
+}
+
+// 瞬間電力消費量を取得する
+func GetNowConsumptionData(ipv6 string) (ElectricData, error) {
+
+	tid := getNewTid()
 
 	// 積算追加
 	targets := []byte{
 		echonet.P_NOW_DENRYOKU,
 		echonet.P_NOW_DENRYUU,
-		// echonet.P_DELTA_DENRYOKU,
 	}
 	msg := echonet.CreateEchonetGetMessage(tid, targets)
 
-	var ret []string
+	electricData, err := querySmartMeter(ipv6, tid, msg)
+	if err != nil {
+		return electricData, err
+	}
+
+	return electricData, nil
+}
+
+// 瞬間電力消費量を取得する
+func GetDeltaConsumptionData(ipv6 string) (ElectricData, error) {
+
+	tid := getNewTid()
+
+	// 積算追加
+	targets := []byte{
+		echonet.P_DELTA_DENRYOKU,
+		echonet.P_DELTA_DENRYOKU_R,
+	}
+	msg := echonet.CreateEchonetGetMessage(tid, targets)
+
+	electricData, err := querySmartMeter(ipv6, tid, msg)
+	if err != nil {
+		return electricData, fmt.Errorf("failed to get delta consumption: %w", err)
+	}
+
+	return electricData, nil
+}
+
+func querySmartMeter(ipv6 string, tid echonet.TransactionId, msg []byte) (ElectricData, error) {
 	tidStr := fmt.Sprintf("%04d", tid)
 
-	// データ取得時に応答を返さない場合があるのでここだけリトライする
-	retry := 0
-	for {
-		err = skSendTo(ipv6, msg)
-		if err != nil {
-			return nullResult, err
-		}
+	nullResult := ElectricData{}
+	var err error
 
-		log.Debug().Msgf("Echonet property GET message sent.")
-
-		ret, err = waitForResultERXUDP(tidStr)
-		if err != nil {
-			if strings.Contains(err.Error(), "timeout reached") {
-				if retry < config.MAX_ECHONET_GET_RETRY {
-					log.Warn().Msgf("No smartmeter response. retrying %d/%d",
-						retry, config.MAX_ECHONET_GET_RETRY)
-					continue
-				}
-			}
-			return nullResult, err
-		}
-
-		break // データ取れた
+	ret, err := sendRequestWithRetry(ipv6, tid, msg)
+	if err != nil {
+		return nullResult, fmt.Errorf("error occured while sending request: %w", err)
 	}
 
 	elret := findEchonetResponses(ret, tidStr)
@@ -122,9 +135,38 @@ func GetElectricData(ipv6 string) (ElectricData, error) {
 		return nullResult, err
 	}
 
-	LAST_TID = tid
-
 	return electricData, nil
+}
+
+func sendRequestWithRetry(ipv6 string, tid echonet.TransactionId, msg []byte) ([]string, error) {
+	nullResult := []string{}
+	tidStr := fmt.Sprintf("%04d", tid)
+
+	retry := 0
+	for {
+		err := skSendTo(ipv6, msg)
+		if err != nil {
+			return nullResult, err
+		}
+
+		log.Debug().Msgf("Echonet property GET message sent.")
+
+		ret, err := waitForResultERXUDP(tidStr)
+		if err != nil {
+			if strings.Contains(err.Error(), "timeout reached") {
+				if retry < config.MAX_ECHONET_GET_RETRY {
+					log.Warn().Msgf("No smartmeter response. retrying %d/%d",
+						retry, config.MAX_ECHONET_GET_RETRY)
+					continue
+				} else {
+					log.Warn().Msgf("Retry limit exceed. give up.")
+				}
+			}
+			return nullResult, err
+		}
+
+		return ret, nil
+	}
 }
 
 func parseELMsgToElectricData(elmsg echonet.EchonetLite) (ElectricData, error) {
@@ -139,6 +181,12 @@ func parseELMsgToElectricData(elmsg echonet.EchonetLite) (ElectricData, error) {
 			}
 			ret[fmt.Sprintf("%02X", key)] = float64(nowDenryoku)
 		case echonet.P_DELTA_DENRYOKU:
+			deltaDenryoku, err := parser.ParseE0DeltaDenryoku(value)
+			if err != nil {
+				return ret, err
+			}
+			ret[fmt.Sprintf("%02X", key)] = float64(deltaDenryoku)
+		case echonet.P_DELTA_DENRYOKU_R:
 			deltaDenryoku, err := parser.ParseE0DeltaDenryoku(value)
 			if err != nil {
 				return ret, err

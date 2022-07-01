@@ -25,16 +25,16 @@ func CreateEchonetInfMessage(transactionId int, properties []string) []byte {
 
 // プロパティ値要求電文を生成する
 // SKSENDTOで使用できるように []byteで返す
-//   EHD  1081 ... Echonet lite 固定値 2byte
-// TID  1234 ... Transaction ID。応答に同じIDをつけてくれる 2byte
-// SEOJ 05FF01 ... 送信元機器種別。 とりあえずコントローラ 05FF01 固定 3byte
-// DEOJ 028801 ... 送信先機器種別。低圧スマートメーター 028801 3byte
-// ESV         ... 命令(get,set)を入れる。 GET=62 1byte
-// OPC         ... 命令数
-// EPC         ... プロパティコード
-// PDC         ... EDTデータ長。 GET時は 0  1byte
-// EDT         ... データ部
-func CreateEchonetGetMessage(transactionId uint16, properties []byte) []byte {
+//  EHD  1081 ... Echonet lite 固定値 2byte
+//  TID  1234 ... Transaction ID。応答に同じIDをつけてくれる 2byte
+//  SEOJ 05FF01 ... 送信元機器種別。 とりあえずコントローラ 05FF01 固定 3byte
+//  DEOJ 028801 ... 送信先機器種別。低圧スマートメーター 028801 3byte
+//  ESV         ... 命令(get,set)を入れる。 GET=62 1byte
+//  OPC         ... 命令数
+//  EPC         ... プロパティコード
+//  PDC         ... EDTデータ長。 GET時は 0  1byte
+//  EDT         ... データ部
+func CreateEchonetGetMessage(transactionId TransactionId, properties []byte) []byte {
 	tid, err := hex.DecodeString(fmt.Sprintf("%04d", transactionId))
 	if err != nil {
 		tid = []byte{0xEE, 0xEE}
