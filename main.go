@@ -92,6 +92,8 @@ func runWithSerialPort() error {
 				return fmt.Errorf("error occured while getting consumption: %w", err)
 			}
 
+			nowTimer = time.NewTimer(config.NOW_CONSUMPTION_WAIT)
+
 			log.Info().Msgf("Smartmeter Response: %v", ret)
 			err = handleResult(ret)
 			if err != nil {
@@ -102,6 +104,8 @@ func runWithSerialPort() error {
 			if err != nil {
 				return fmt.Errorf("error occured while getting delta consumption: %w", err)
 			}
+
+			totalTimer = time.NewTimer(config.TOTAL_CONSUMPTION_WAIT)
 
 			log.Info().Msgf("Smartmeter Response: %v", ret)
 			err = handleResult(ret)
