@@ -149,16 +149,18 @@ func handleResult(data bp35a1.ElectricData) error {
 	// exec
 	output, err := exec.Command(config.EXEC_CMD, f.Name()).CombinedOutput()
 	if err != nil {
-		return err
+		log.Err(err).Msgf("error executing EXEC_CMD %s", config.EXEC_CMD)
+		outputByteStringsToLog(output, true)
+	} else {
+		outputByteStringsToLog(output, false)
 	}
-	outputByteStringsToLog(output)
 
 	os.Remove(filepath)
 
 	return nil
 }
 
-func outputByteStringsToLog(byteStrings []byte) {
+func outputByteStringsToLog(byteStrings []byte, isError bool) {
 	newline := "\n"
 	switch runtime.GOOS {
 	case "windows":
@@ -176,7 +178,11 @@ func outputByteStringsToLog(byteStrings []byte) {
 		line = strings.ReplaceAll(line, "\r", "")
 		line = strings.ReplaceAll(line, "\n", "")
 		if len(line) > 0 {
-			log.Debug().Msgf("EXEC OUTPUT: %s", line)
+			if isError {
+				log.Error().Msgf("EXEC OUTPUT: %s", line)
+			} else {
+				log.Debug().Msgf("EXEC OUTPUT: %s", line)
+			}
 		}
 	}
 }
