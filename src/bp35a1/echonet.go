@@ -143,7 +143,7 @@ func sendRequestWithRetry(ipv6 string, tid echonet.TransactionId, msg []byte) ([
 	tidStr := fmt.Sprintf("%04d", tid)
 
 	retry := 0
-	for {
+	for { // retry loop
 		err := skSendTo(ipv6, msg)
 		if err != nil {
 			return nullResult, err
@@ -157,11 +157,15 @@ func sendRequestWithRetry(ipv6 string, tid echonet.TransactionId, msg []byte) ([
 				if retry < config.MAX_ECHONET_GET_RETRY {
 					log.Warn().Msgf("No smartmeter response. retrying %d/%d",
 						retry, config.MAX_ECHONET_GET_RETRY)
+					retry = retry + 1
 					continue
 				} else {
-					log.Warn().Msgf("Retry limit exceed. give up.")
+					log.Error().Msgf("Retry limit exceed. give up. needs restart")
+					e := fmt.Errorf("no response. retry limit exceed")
+					return nullResult, e
 				}
 			}
+
 			return nullResult, err
 		}
 
