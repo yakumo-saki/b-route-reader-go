@@ -5,3 +5,6 @@ B_ROUTE_PASSWORD = "ABCDEFGHIJKL"
 SERIAL = "/dev/ttyAMA0"
 EXEC_CMD = "./dist/zabbix.sh"
 LOG_LEVEL=INFO
+
+# 本番ではtrueにするとjournalctl でログを表示したときに日付が重複して出力されるのを抑止できる
+LOG_NO_DATETIME=false

@@ -26,6 +26,9 @@ var TOTAL_CONSUMPTION_WAIT = 180 * time.Second
 // EchonetLiteのGET時にリトライする回数
 var MAX_ECHONET_GET_RETRY = 3
 
+// ログに日時を出力するか（systemdで動かす場合はfalse）
+var LOG_NO_DATETIME = true
+
 // 環境変数からconfigをセット
 func Initialize() {
 	LOG_LEVEL = os.Getenv("LOG_LEVEL")
@@ -60,5 +63,8 @@ func Initialize() {
 	if EXEC_CMD == "" {
 		panic("EXEC_CMD env value is not set")
 	}
+
+	noDatetime := os.Getenv("LOG_NO_DATETIME")
+	LOG_NO_DATETIME = (strings.ToLower(noDatetime) == "true")
 
 }
