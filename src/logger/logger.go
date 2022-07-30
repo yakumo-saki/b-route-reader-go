@@ -24,8 +24,8 @@ func Initiallize() {
 	if config.LOG_NO_DATETIME {
 		excludes := []string{zerolog.TimestampFieldName}
 
-		outputNoTimestamp := zerolog.ConsoleWriter{Out: os.Stdout, FieldsExclude: excludes}
-		log.Logger = zerolog.New(outputNoTimestamp).With().Caller().Logger()
+		outputNoTimestamp := zerolog.ConsoleWriter{Out: os.Stdout, FieldsExclude: excludes, TimeFormat: ""}
+		log.Logger = zerolog.New(outputNoTimestamp).With().Timestamp().Caller().Logger()
 	} else {
 		zerolog.TimeFieldFormat = time.RFC3339Nano
 		outputWithTimestamp := zerolog.ConsoleWriter{Out: os.Stdout, TimeFormat: "2006-01-02 15:04:05.000"}
