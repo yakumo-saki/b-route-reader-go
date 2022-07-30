@@ -127,7 +127,7 @@ func waitForResult(completeCheckFunc func(string) bool, timeoutDuration time.Dur
 
 			} else if len(byteBuf) == 1 && byteBuf[0] == LF {
 				// SKLL64の時、LFだけがバッファに残ってしまい無限ループすることへの対策
-				// 本来は起きないはずなのだが…
+				// 本来は起きないはずなのだがまいどまいど発生している。CRLFの切り分けがバグっているかもしれない。
 				// log.Warn().Msgf("executing start with LF workaround")
 				byteBuf = byteBuf[1:]
 				break

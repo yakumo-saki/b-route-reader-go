@@ -156,10 +156,12 @@ func sendRequestWithRetry(ipv6 string, tid echonet.TransactionId, msg []byte) ([
 			if strings.Contains(err.Error(), "timeout reached") {
 				if retry < config.MAX_ECHONET_GET_RETRY {
 					log.Warn().Msgf("No smartmeter response. retrying %d/%d",
-						retry, config.MAX_ECHONET_GET_RETRY)
+						(retry + 1), config.MAX_ECHONET_GET_RETRY)
 					retry = retry + 1
 					continue
 				} else {
+					// ここに来る原因は、長時間動かしている場合にPAN認証が期限切れになる場合がほとんど。
+					// 本当はPAN認証からやり直せばよいのだが、実装するのも面倒なので異常終了としてsystemdに再起動してもらう
 					log.Error().Msgf("Retry limit exceed. give up. needs restart")
 					e := fmt.Errorf("no response. retry limit exceed")
 					return nullResult, e
@@ -167,6 +169,10 @@ func sendRequestWithRetry(ipv6 string, tid echonet.TransactionId, msg []byte) ([
 			}
 
 			return nullResult, err
+		}
+
+		if retry > 0 {
+			log.Info().Msgf("Retry success. resuming normal operation.")
 		}
 
 		return ret, nil
