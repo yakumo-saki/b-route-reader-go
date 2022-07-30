@@ -22,11 +22,12 @@ func Initiallize() {
 	}
 
 	zerolog.TimeFieldFormat = time.RFC3339Nano
-	output := zerolog.ConsoleWriter{Out: os.Stdout, TimeFormat: "2006-01-02 15:04:05.000"}
+	outputWithTimestamp := zerolog.ConsoleWriter{Out: os.Stdout, TimeFormat: "2006-01-02 15:04:05.000"}
+	outputNoTimestamp := zerolog.ConsoleWriter{Out: os.Stdout}
 
 	if config.LOG_NO_DATETIME {
-		log.Logger = zerolog.New(output).With().Caller().Logger()
+		log.Logger = zerolog.New(outputNoTimestamp).With().Caller().Logger()
 	} else {
-		log.Logger = zerolog.New(output).With().Timestamp().Caller().Logger()
+		log.Logger = zerolog.New(outputWithTimestamp).With().Timestamp().Caller().Logger()
 	}
 }
