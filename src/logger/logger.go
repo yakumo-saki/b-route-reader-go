@@ -22,7 +22,9 @@ func Initiallize() {
 	}
 
 	if config.LOG_NO_DATETIME {
-		outputNoTimestamp := zerolog.ConsoleWriter{Out: os.Stdout}
+		excludes := []string{zerolog.TimestampFieldName}
+
+		outputNoTimestamp := zerolog.ConsoleWriter{Out: os.Stdout, FieldsExclude: excludes}
 		log.Logger = zerolog.New(outputNoTimestamp).With().Caller().Logger()
 	} else {
 		zerolog.TimeFieldFormat = time.RFC3339Nano
