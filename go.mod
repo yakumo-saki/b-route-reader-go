@@ -6,6 +6,7 @@ require (
 	github.com/rs/zerolog v1.27.0
 	github.com/stretchr/testify v1.7.0
 	go.bug.st/serial v1.3.5
+	github.com/shopspring/decimal v1.3.1 
 )
 
 require (

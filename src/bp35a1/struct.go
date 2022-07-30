@@ -1,6 +1,10 @@
 package bp35a1
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/shopspring/decimal"
+)
 
 type SmartMeter struct {
 	Channel     string
@@ -23,7 +27,7 @@ func (sm SmartMeter) String() string {
 // 	DeltakWh  float64 // 積算電力量
 // 	Watt      int     // 瞬間電力量
 // }
-type ElectricData map[string]float64
+type ElectricData map[string]decimal.Decimal
 
 // func (ed ElectricData) String() string {
 // 	return fmt.Sprintf("ElectricData: Amps Total=%.1f(R=%.1f T=%.1f) Watt=%d Delta=%.2f",

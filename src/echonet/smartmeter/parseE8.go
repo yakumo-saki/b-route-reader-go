@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+
+	"github.com/shopspring/decimal"
 )
 
 // EPC 0xE7 瞬時電流計測値をパースする
@@ -26,9 +28,10 @@ func (sm *ELSmartMeterParser) ParseE8NowDenryuu(data []byte) (NowDenryuu, error)
 		return ret, fmt.Errorf("failed to parse Tphase value 0x%02X%02X: %w", data[2], data[3], err)
 	}
 
-	ret.Rphase = float64(rPhase) * float64(0.1)
-	ret.Tphase = float64(tPhase) * float64(0.1)
-	ret.Total = ret.Rphase + ret.Tphase
+	keisuu, _ := decimal.NewFromString("0.1")
+	ret.Rphase = decimal.NewFromInt(int64(rPhase)).Mul(keisuu)
+	ret.Tphase = decimal.NewFromInt(int64(tPhase)).Mul(keisuu)
+	ret.Total = ret.Rphase.Add(ret.Tphase)
 	return ret, nil
 }
 

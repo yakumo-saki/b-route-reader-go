@@ -189,27 +189,27 @@ func parseELMsgToElectricData(elmsg echonet.EchonetLite) (ElectricData, error) {
 			if err != nil {
 				return ret, err
 			}
-			ret[fmt.Sprintf("%02X", key)] = float64(nowDenryoku)
+			ret[fmt.Sprintf("%02X", key)] = nowDenryoku
 		case echonet.P_DELTA_DENRYOKU:
 			deltaDenryoku, err := parser.ParseE0DeltaDenryoku(value)
 			if err != nil {
 				return ret, err
 			}
-			ret[fmt.Sprintf("%02X", key)] = float64(deltaDenryoku)
+			ret[fmt.Sprintf("%02X", key)] = deltaDenryoku
 		case echonet.P_DELTA_DENRYOKU_R:
 			deltaDenryoku, err := parser.ParseE0DeltaDenryoku(value)
 			if err != nil {
 				return ret, err
 			}
-			ret[fmt.Sprintf("%02X", key)] = float64(deltaDenryoku)
+			ret[fmt.Sprintf("%02X", key)] = deltaDenryoku
 		case echonet.P_NOW_DENRYUU:
 			nowDenryuu, err := parser.ParseE8NowDenryuu(value)
 			if err != nil {
 				return ret, err
 			}
-			ret[fmt.Sprintf("%02X_Rphase", key)] = float64(nowDenryuu.Rphase)
-			ret[fmt.Sprintf("%02X_Tphase", key)] = float64(nowDenryuu.Tphase)
-			ret[fmt.Sprintf("%02X", key)] = float64(nowDenryuu.Total)
+			ret[fmt.Sprintf("%02X_Rphase", key)] = nowDenryuu.Rphase
+			ret[fmt.Sprintf("%02X_Tphase", key)] = nowDenryuu.Tphase
+			ret[fmt.Sprintf("%02X", key)] = nowDenryuu.Total
 		}
 	}
 

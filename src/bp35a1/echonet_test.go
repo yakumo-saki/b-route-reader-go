@@ -17,8 +17,8 @@ func Test_findFirstEchonetUnicast(t *testing.T) {
 
 	ret := findEchonetResponses(testcase, "1002")
 
-	assert.Equal(1, len(ret))
-	assert.Equal(testcase[2], ret[0])
+	assert.Equal(48, len(ret))
+	assert.Equal("1081100202880105FF017202E7040000029CE80400280028", ret)
 }
 
 func Test_isEchonetUnicastResponse(t *testing.T) {

@@ -4,6 +4,7 @@ import (
 	"encoding/hex"
 	"testing"
 
+	"github.com/shopspring/decimal"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -16,8 +17,8 @@ func TestELSmartMeterParser_ParseAndStoreSimple(t *testing.T) {
 	parser := ELSmartMeterParser{}
 	parser.ParseAndStoreE1DeltaUnit(hexE1)
 	parser.ParseAndStoreD3Multiplier(hexD3)
-	assert.Equal(10000, parser.multiplier)
-	assert.Equal(0.0001, parser.unit)
+	assert.Equal(decimal.NewFromInt(10000), parser.multiplier)
+	assert.Equal(decimal.RequireFromString("0.0001"), parser.unit)
 }
 
 func TestELSmartMeterParser_E1Fail(t *testing.T) {

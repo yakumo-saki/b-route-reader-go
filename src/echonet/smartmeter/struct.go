@@ -1,7 +1,9 @@
 package smartmeter
 
+import "github.com/shopspring/decimal"
+
 type NowDenryuu struct {
-	Rphase float64
-	Tphase float64
-	Total  float64
+	Rphase decimal.Decimal
+	Tphase decimal.Decimal
+	Total  decimal.Decimal
 }

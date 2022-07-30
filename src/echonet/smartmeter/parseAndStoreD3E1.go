@@ -4,6 +4,8 @@ import (
 	"encoding/hex"
 	"fmt"
 	"strconv"
+
+	"github.com/shopspring/decimal"
 )
 
 // EPC 0xD3 係数
@@ -16,7 +18,7 @@ func (sm *ELSmartMeterParser) ParseAndStoreD3Multiplier(data []byte) (int, error
 		return -1, err
 	}
 	ret := int(ret64)
-	sm.multiplier = int(ret)
+	sm.multiplier = decimal.NewFromInt(ret64)
 	return int(ret), nil
 }
 
@@ -30,35 +32,35 @@ func (sm *ELSmartMeterParser) ParseAndStoreD3Multiplier(data []byte) (int, error
 // 0x0B：100kWh
 // 0x0C：1000kWh
 // 0x0D：10000kWh
-func (sm *ELSmartMeterParser) ParseAndStoreE1DeltaUnit(data []byte) (float64, error) {
+func (sm *ELSmartMeterParser) ParseAndStoreE1DeltaUnit(data []byte) (string, error) {
 	if len(data) != 1 {
-		return -1, fmt.Errorf("property E1 length != 1")
+		return "-1", fmt.Errorf("property E1 length != 1")
 	}
 
-	ret := -1.0
+	var ret = decimal.Zero
 	switch data[0] {
 	case 0x00:
-		ret = 1
+		ret = decimal.RequireFromString("1")
 	case 0x01:
-		ret = 0.1
+		ret = decimal.RequireFromString("0.1")
 	case 0x02:
-		ret = 0.01
+		ret = decimal.RequireFromString("0.01")
 	case 0x03:
-		ret = 0.001
+		ret = decimal.RequireFromString("0.001")
 	case 0x04:
-		ret = 0.0001
+		ret = decimal.RequireFromString("0.0001")
 	case 0x0A:
-		ret = 10
+		ret = decimal.RequireFromString("10")
 	case 0x0B:
-		ret = 100
+		ret = decimal.RequireFromString("100")
 	case 0x0C:
-		ret = 1000
+		ret = decimal.RequireFromString("1000")
 	case 0x0D:
-		ret = 10000
+		ret = decimal.RequireFromString("10000")
 	default:
-		return -1, fmt.Errorf("property E1 unknown value %02d", data[0])
+		return "-1", fmt.Errorf("property E1 unknown value %02d", data[0])
 	}
 
 	sm.unit = ret
-	return ret, nil
+	return ret.String(), nil
 }

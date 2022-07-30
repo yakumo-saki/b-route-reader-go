@@ -3,15 +3,17 @@ package smartmeter
 import (
 	"bytes"
 	"encoding/binary"
+
+	"github.com/shopspring/decimal"
 )
 
 // EPC 0xE0 積算電力量をパースする。
 // 積算電力量を扱うので、係数(D3)と単位(E1)が必要
-func (sm *ELSmartMeterParser) ParseE0DeltaDenryoku(data []byte) (float64, error) {
+func (sm *ELSmartMeterParser) ParseE0DeltaDenryoku(data []byte) (decimal.Decimal, error) {
 
 	err := sm.checkPreCondition()
 	if err != nil {
-		return -1, err
+		return ERR_VAL, err
 	}
 
 	// numStr := hex.EncodeToString(data)
@@ -19,10 +21,10 @@ func (sm *ELSmartMeterParser) ParseE0DeltaDenryoku(data []byte) (float64, error)
 	var val uint32
 	err = binary.Read(bytes.NewBuffer(data), binary.BigEndian, &val)
 	if err != nil {
-		return -1, err
+		return ERR_VAL, err
 	}
 
-	kwh := float64(val) * float64(sm.multiplier) * sm.unit
+	kwh := decimal.NewFromInt(int64(val)).Mul(sm.multiplier).Mul(sm.unit)
 
 	return kwh, nil
 }
