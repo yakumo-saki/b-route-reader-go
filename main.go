@@ -14,6 +14,7 @@ import (
 
 	"github.com/yakumo-saki/b-route-reader-go/src/bp35a1"
 	"github.com/yakumo-saki/b-route-reader-go/src/config"
+	"github.com/yakumo-saki/b-route-reader-go/src/global"
 	"github.com/yakumo-saki/b-route-reader-go/src/logger"
 )
 
@@ -28,7 +29,8 @@ func run() int {
 	config.Initialize()
 	logger.Initiallize()
 
-	log.Info().Msg("Start")
+	log.Info().Msgf("Version %s. Build %s", global.Version, global.GitBuild)
+	log.Info().Msgf("%s", global.Url)
 	err := bp35a1.Connect()
 	if err != nil {
 		log.Err(err).Msg("Serial port open error. Exiting.")
